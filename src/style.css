@@ -1,0 +1,1520 @@
+/* ==========================================================================
+   ALPHA SYNAPSE AR HUD DESIGN SYSTEM (style.css)
+   Inspired by "Rebuild World" - High-Tech Tactile Combat Visor Theme
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   1. Theme Variables & Base Resets
+   -------------------------------------------------------------------------- */
+:root {
+  --color-bg-darker: #040609;
+  --color-bg-panel: rgba(8, 14, 22, 0.7);
+  --color-bg-active: rgba(0, 243, 255, 0.15);
+  --color-cyan: #00f3ff;
+  --color-cyan-glow: rgba(0, 243, 255, 0.4);
+  --color-orange: #ff6c00;
+  --color-orange-glow: rgba(255, 108, 0, 0.4);
+  --color-text-bright: #e2f5ff;
+  --color-text-dim: #8ba9bd;
+  --font-hud: 'Share Tech Mono', monospace;
+  --font-ui: 'Inter', sans-serif;
+  --font-title: 'Orbitron', sans-serif;
+  --border-radius: 4px;
+  --border-glow: 1px solid rgba(0, 243, 255, 0.25);
+  --border-glow-orange: 1px solid rgba(255, 108, 0, 0.25);
+  --panel-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.7), 0 0 10px rgba(0, 243, 255, 0.1);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body, html {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background-color: var(--color-bg-darker);
+  font-family: var(--font-ui);
+  color: var(--color-text-bright);
+}
+
+/* --------------------------------------------------------------------------
+   2. Full Screen Layers & Background Filters
+   -------------------------------------------------------------------------- */
+#canvas-3d {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+  background: radial-gradient(circle at center, #0a111a 0%, #03060a 100%);
+}
+
+/* Vignette Shadow */
+.hud-vignette {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 2;
+  pointer-events: none;
+  background: radial-gradient(circle, transparent 40%, rgba(3, 6, 10, 0.85) 100%);
+}
+
+/* Futuristic Scanline Animation Overlay */
+.hud-scanlines {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 3;
+  pointer-events: none;
+  background: linear-gradient(
+    rgba(18, 16, 16, 0) 50%, 
+    rgba(0, 0, 0, 0.25) 50%
+  );
+  background-size: 100% 4px;
+  opacity: 0.8;
+}
+
+/* Digital Noise Layer */
+.hud-noise-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 4;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+  opacity: 0.02;
+}
+
+/* Main Container */
+#hud-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 5;
+  pointer-events: none; /* Allows mouse orbit through layers */
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 20px;
+}
+
+#hud-overlay * {
+  pointer-events: auto; /* Re-enable pointer events for UI items */
+}
+
+/* --------------------------------------------------------------------------
+   3. AR HUD Header (Top Status Bar)
+   -------------------------------------------------------------------------- */
+.hud-header {
+  height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: var(--border-glow);
+  background: linear-gradient(90deg, rgba(0, 243, 255, 0.05) 0%, rgba(0,0,0,0.6) 50%, rgba(0, 243, 255, 0.05) 100%);
+  padding: 0 20px;
+  font-family: var(--font-hud);
+  font-size: 14px;
+  letter-spacing: 2px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+}
+
+.glow-cyan {
+  color: var(--color-cyan);
+  text-shadow: 0 0 8px var(--color-cyan-glow);
+}
+
+.text-orange {
+  color: var(--color-orange);
+  text-shadow: 0 0 8px var(--color-orange-glow);
+}
+
+.pulse-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  background-color: var(--color-cyan);
+  border-radius: 50%;
+  margin-right: 10px;
+  box-shadow: 0 0 8px var(--color-cyan);
+  animation: pulse-glow 1.5s infinite ease-in-out;
+}
+
+.hud-main-title {
+  font-family: var(--font-title);
+  font-weight: 800;
+  font-size: 18px;
+  color: var(--color-text-bright);
+  text-shadow: 0 0 10px rgba(226, 245, 255, 0.3);
+}
+
+.hud-timer {
+  color: var(--color-text-dim);
+}
+
+/* --------------------------------------------------------------------------
+   4. Floating Side Panels
+   -------------------------------------------------------------------------- */
+.hud-panel {
+  position: absolute;
+  top: 90px;
+  bottom: 220px; /* Space for footer */
+  width: 320px;
+  background: rgba(4, 9, 15, 0.55);
+  border: 1px solid rgba(0, 243, 255, 0.2);
+  border-radius: 8px;
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  box-shadow: var(--panel-shadow);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  position: absolute;
+}
+
+.hud-panel::before, .hud-panel::after {
+  content: '';
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  border-color: var(--color-cyan);
+  border-style: solid;
+  pointer-events: none;
+  z-index: 5;
+  transition: all 0.4s ease;
+}
+
+.hud-panel::before {
+  top: -1px;
+  left: -1px;
+  border-width: 2px 0 0 2px;
+  box-shadow: -2px -2px 6px rgba(0, 243, 255, 0.3);
+}
+
+.hud-panel::after {
+  bottom: -1px;
+  right: -1px;
+  border-width: 0 2px 2px 0;
+  box-shadow: 2px 2px 6px rgba(0, 243, 255, 0.3);
+}
+
+.hud-panel:hover {
+  border-color: rgba(0, 243, 255, 0.65);
+  background: rgba(4, 9, 15, 0.7);
+  box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.85), 0 0 20px rgba(0, 243, 255, 0.35);
+}
+
+.hud-panel:hover::before {
+  border-color: var(--color-cyan);
+  width: 24px;
+  height: 24px;
+}
+
+.hud-panel:hover::after {
+  border-color: var(--color-cyan);
+  width: 24px;
+  height: 24px;
+}
+
+.panel-border-glow {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, var(--color-cyan), transparent);
+  opacity: 0.8;
+}
+
+.hud-panel.panel-left {
+  left: 20px;
+}
+
+.hud-panel.panel-right {
+  right: 20px;
+  width: 350px; /* Right panel is wider to house settings + chat input */
+}
+
+/* Header style for panels */
+.panel-header {
+  padding: 12px 15px;
+  font-family: var(--font-title);
+  font-weight: 600;
+  font-size: 14px;
+  letter-spacing: 1px;
+  color: var(--color-cyan);
+  border-bottom: 1px solid rgba(0, 243, 255, 0.15);
+  background: rgba(0, 243, 255, 0.03);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.panel-icon {
+  font-size: 10px;
+}
+
+.panel-body {
+  padding: 15px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  overflow-y: auto;
+}
+
+/* Panel Separator Line */
+.hud-separator {
+  height: 1px;
+  background: linear-gradient(90deg, rgba(0, 243, 255, 0), rgba(0, 243, 255, 0.2), rgba(0, 243, 255, 0));
+  margin: 10px 0;
+}
+
+/* --------------------------------------------------------------------------
+   5. Diagnostic & Scanner Widgets (Left Panel)
+   -------------------------------------------------------------------------- */
+.diagnostic-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-family: var(--font-hud);
+  font-size: 13px;
+  border-bottom: 1px solid rgba(226, 245, 255, 0.05);
+  padding-bottom: 6px;
+}
+
+.diag-label {
+  color: var(--color-text-dim);
+}
+
+.diag-value {
+  font-weight: bold;
+}
+
+/* Interactive radar sweep grid */
+.scanner-grid {
+  position: relative;
+  width: 100%;
+  height: 140px;
+  border: 1px solid rgba(0, 243, 255, 0.1);
+  border-radius: var(--border-radius);
+  background-image: 
+    linear-gradient(rgba(0, 243, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 243, 255, 0.05) 1px, transparent 1px);
+  background-size: 20px 20px;
+  background-position: center;
+  overflow: hidden;
+  background-color: rgba(0, 0, 0, 0.2);
+}
+
+.scanner-sweep {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(180deg, rgba(0, 243, 255, 0.15) 0%, transparent 100%);
+  transform-origin: top;
+  animation: radar-sweep 4s linear infinite;
+}
+
+.scanner-crosshair {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 30px;
+  height: 30px;
+  border: 1px solid rgba(0, 243, 255, 0.3);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.scanner-crosshair::before,
+.scanner-crosshair::after {
+  content: '';
+  position: absolute;
+  background-color: rgba(0, 243, 255, 0.3);
+}
+
+.scanner-crosshair::before {
+  top: 50%;
+  left: -5px;
+  right: -5px;
+  height: 1px;
+}
+
+.scanner-crosshair::after {
+  left: 50%;
+  top: -5px;
+  bottom: -5px;
+  width: 1px;
+}
+
+.scanner-ping {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  background-color: var(--color-orange);
+  border-radius: 50%;
+  box-shadow: 0 0 8px var(--color-orange);
+  animation: ping-expand 2s infinite ease-out;
+}
+
+.diagnostic-notes {
+  font-family: var(--font-hud);
+  font-size: 11px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  color: var(--color-text-dim);
+}
+
+.note-line {
+  line-height: 1.4;
+}
+
+/* --------------------------------------------------------------------------
+   6. Custom Input Controls (Right Panel)
+   -------------------------------------------------------------------------- */
+.control-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.control-label {
+  font-family: var(--font-hud);
+  font-size: 12px;
+  letter-spacing: 1px;
+  color: var(--color-cyan);
+  text-shadow: 0 0 4px var(--color-cyan-glow);
+}
+
+.hud-input {
+  background: rgba(3, 6, 10, 0.8);
+  border: var(--border-glow);
+  padding: 8px 12px;
+  color: var(--color-text-bright);
+  font-family: var(--font-hud);
+  font-size: 13px;
+  border-radius: var(--border-radius);
+  outline: none;
+  transition: all 0.3s ease;
+}
+
+.hud-input:focus {
+  border-color: var(--color-cyan);
+  box-shadow: 0 0 8px var(--color-cyan-glow);
+  background: rgba(8, 14, 22, 0.95);
+}
+
+.input-tip {
+  font-size: 10px;
+  color: var(--color-text-dim);
+  line-height: 1.3;
+}
+
+/* Cyberpunk Selection Container */
+.select-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.select-wrapper select {
+  width: 100%;
+  background: rgba(3, 6, 10, 0.8);
+  border: var(--border-glow);
+  padding: 8px 12px;
+  color: var(--color-text-bright);
+  font-family: var(--font-hud);
+  font-size: 13px;
+  border-radius: var(--border-radius);
+  appearance: none;
+  outline: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.select-wrapper select:focus {
+  border-color: var(--color-cyan);
+  box-shadow: 0 0 8px var(--color-cyan-glow);
+}
+
+.select-wrapper::after {
+  content: '▼';
+  font-size: 8px;
+  color: var(--color-cyan);
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+/* Configuration groups toggle */
+.config-subgroup {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 10px;
+  border-left: 2px solid var(--color-cyan);
+  background: rgba(0, 243, 255, 0.02);
+  margin-bottom: 5px;
+}
+
+.hidden {
+  display: none !important;
+}
+
+/* Cyberpunk Glow Buttons */
+.hud-btn {
+  background: transparent;
+  border: var(--border-glow);
+  font-family: var(--font-hud);
+  font-size: 13px;
+  font-weight: bold;
+  letter-spacing: 1px;
+  padding: 10px 15px;
+  border-radius: var(--border-radius);
+  color: var(--color-cyan);
+  cursor: pointer;
+  outline: none;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.hud-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(0, 243, 255, 0.2),
+    transparent
+  );
+  transition: all 0.5s ease;
+}
+
+.hud-btn:hover::before {
+  left: 100%;
+}
+
+.hud-btn:hover {
+  background: var(--color-bg-active);
+  border-color: var(--color-cyan);
+  color: #fff;
+  text-shadow: 0 0 8px var(--color-cyan);
+}
+
+.glow-cyan-btn {
+  background: rgba(0, 243, 255, 0.1);
+  border-color: var(--color-cyan);
+  color: var(--color-text-bright);
+  text-shadow: 0 0 4px var(--color-cyan-glow);
+}
+
+.glow-cyan-btn:hover {
+  background: rgba(0, 243, 255, 0.25);
+  box-shadow: 0 0 12px var(--color-cyan-glow);
+}
+
+/* Chat Input Row */
+.interaction-input-group {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+}
+
+.input-message {
+  flex: 1;
+}
+
+.btn-send {
+  flex-shrink: 0;
+}
+
+/* Log Container inside panel */
+.chat-logs-container {
+  height: 220px;
+  min-height: 150px;
+  flex-shrink: 0; /* VRやコンパクト画面でのレイアウト縮小（1行に潰れるバグ）を防ぐ */
+  background: rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(0, 243, 255, 0.15); /* シックなサイバーパンクの枠線強調 */
+  border-radius: var(--border-radius);
+  padding: 10px;
+  overflow-y: auto;
+  font-family: var(--font-hud);
+  font-size: 12px; /* VRゴーグル内でも文字が潰れないように少し拡大 */
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.logs-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.hud-mini-btn {
+  background: transparent;
+  border: 1px solid rgba(0, 243, 255, 0.4);
+  color: var(--color-cyan);
+  font-family: var(--font-hud);
+  font-size: 10px;
+  font-weight: bold;
+  padding: 2px 8px;
+  border-radius: 2px;
+  cursor: pointer;
+  outline: none;
+  transition: all 0.2s ease;
+  backdrop-filter: blur(4px);
+}
+
+.hud-mini-btn:hover {
+  background: rgba(0, 243, 255, 0.15);
+  border-color: var(--color-cyan);
+  box-shadow: 0 0 8px var(--color-cyan-glow);
+  color: #fff;
+}
+
+.log-entry {
+  line-height: 1.3;
+}
+
+.log-entry.system {
+  color: var(--color-text-dim);
+}
+
+.log-entry.user {
+  color: var(--color-cyan);
+}
+
+.log-entry.alpha {
+  color: var(--color-text-bright);
+}
+
+/* Immersive Neural Voice Link button */
+.voice-link-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin-top: 5px;
+}
+
+.voice-neural-button {
+  position: relative;
+  width: 100%;
+  height: 44px;
+  background: linear-gradient(135deg, rgba(255, 108, 0, 0.15) 0%, rgba(3, 6, 10, 0.9) 100%);
+  border: var(--border-glow-orange);
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  overflow: hidden;
+  outline: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+}
+
+.voice-neural-button:hover {
+  border-color: var(--color-orange);
+  box-shadow: 0 0 12px var(--color-orange-glow);
+}
+
+.voice-btn-core {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  background: rgba(255, 108, 0, 0.05);
+  z-index: 1;
+}
+
+.voice-btn-ring {
+  position: absolute;
+  width: 200px;
+  height: 200px;
+  border: 1px solid rgba(255, 108, 0, 0.1);
+  border-radius: 50%;
+  z-index: 2;
+  pointer-events: none;
+  animation: pulse-ring 3s infinite linear;
+}
+
+.voice-btn-text {
+  font-family: var(--font-title);
+  font-weight: 800;
+  font-size: 12px;
+  letter-spacing: 2px;
+  color: var(--color-orange);
+  text-shadow: 0 0 6px var(--color-orange-glow);
+  z-index: 3;
+}
+
+.voice-status {
+  font-family: var(--font-hud);
+  font-size: 11px;
+  color: var(--color-text-dim);
+}
+
+/* Audio active voice states */
+.voice-link-container.active .voice-neural-button {
+  background: linear-gradient(135deg, rgba(0, 243, 255, 0.2) 0%, rgba(3, 6, 10, 0.9) 100%);
+  border-color: var(--color-cyan);
+  box-shadow: 0 0 15px var(--color-cyan-glow);
+}
+
+.voice-link-container.active .voice-btn-text {
+  color: var(--color-cyan);
+  text-shadow: 0 0 6px var(--color-cyan-glow);
+  animation: text-pulse 1s infinite alternate;
+}
+
+.voice-link-container.active .voice-btn-ring {
+  border-color: rgba(0, 243, 255, 0.3);
+  animation: pulse-ring 1.5s infinite linear;
+}
+
+/* --------------------------------------------------------------------------
+   7. Footer HUD Panels (Subtitles & Frequency Bars)
+   -------------------------------------------------------------------------- */
+.hud-footer {
+  position: absolute;
+  bottom: 25px;
+  left: 20px;
+  right: 20px;
+  height: auto;
+  max-height: 280px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 12px;
+  pointer-events: none;
+}
+
+/* Equalizer / Decibel wave */
+.frequency-waveform-container {
+  display: flex;
+  gap: 4px;
+  height: 40px;
+  align-items: flex-end;
+  justify-content: center;
+  width: 300px;
+  pointer-events: none;
+  opacity: 0.8;
+}
+
+.freq-bar {
+  width: 6px;
+  height: 4px;
+  background-color: var(--color-cyan);
+  box-shadow: 0 0 6px var(--color-cyan-glow);
+  border-radius: 3px 3px 0 0;
+  transition: height 0.05s ease;
+  pointer-events: none;
+}
+
+/* Dynamic subtitles card */
+.hud-subtitle-box {
+  width: 100%;
+  max-width: 900px;
+  background: rgba(4, 9, 15, 0.55);
+  border: 1px solid rgba(0, 243, 255, 0.2);
+  border-radius: 8px;
+  padding: 15px 25px;
+  box-shadow: var(--panel-shadow);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  position: relative;
+  pointer-events: auto;
+  min-height: 90px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  transition: all 0.4s ease;
+}
+
+.hud-subtitle-box::before, .hud-subtitle-box::after {
+  content: '';
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  border-color: var(--color-cyan);
+  border-style: solid;
+  pointer-events: none;
+  z-index: 5;
+  transition: all 0.4s ease;
+}
+
+.hud-subtitle-box::before {
+  top: -1px;
+  left: -1px;
+  border-width: 2px 0 0 2px;
+  box-shadow: -2px -2px 6px rgba(0, 243, 255, 0.3);
+}
+
+.hud-subtitle-box::after {
+  bottom: -1px;
+  right: -1px;
+  border-width: 0 2px 2px 0;
+  box-shadow: 2px 2px 6px rgba(0, 243, 255, 0.3);
+}
+
+.hud-subtitle-box:hover {
+  border-color: rgba(0, 243, 255, 0.5);
+  background: rgba(4, 9, 15, 0.65);
+  box-shadow: 0 10px 36px 0 rgba(0, 0, 0, 0.8), 0 0 15px rgba(0, 243, 255, 0.2);
+}
+
+.subtitle-badge {
+  position: absolute;
+  top: -10px;
+  left: 20px;
+  background: var(--color-bg-darker);
+  border: var(--border-glow);
+  color: var(--color-cyan);
+  font-family: var(--font-hud);
+  font-size: 10px;
+  font-weight: bold;
+  padding: 2px 10px;
+  border-radius: 2px;
+  letter-spacing: 1px;
+  box-shadow: 0 0 5px var(--color-cyan-glow);
+}
+
+.subtitle-copy-btn {
+  position: absolute;
+  top: -10px;
+  right: 20px;
+  background: var(--color-bg-darker);
+  border: var(--border-glow);
+  color: var(--color-cyan);
+  font-family: var(--font-hud);
+  font-size: 9px;
+  font-weight: bold;
+  padding: 2px 8px;
+  border-radius: 2px;
+  letter-spacing: 1px;
+  box-shadow: 0 0 5px var(--color-cyan-glow);
+  cursor: pointer;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.subtitle-copy-btn:hover {
+  background: rgba(0, 243, 255, 0.15);
+  border-color: var(--color-cyan);
+  box-shadow: 0 0 8px var(--color-cyan-glow);
+  color: #fff;
+}
+
+.subtitle-text-container {
+  width: 100%;
+  max-height: 140px;
+  overflow-y: auto;
+  padding-right: 5px;
+}
+
+.subtitle-text {
+  font-family: var(--font-ui);
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 1.6;
+  color: var(--color-text-bright);
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.9);
+}
+
+/* --------------------------------------------------------------------------
+   8. Viewport Floating Info
+   -------------------------------------------------------------------------- */
+#viewport-tips {
+  position: absolute;
+  left: 360px;
+  right: 390px;
+  top: 90px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  pointer-events: none;
+  opacity: 0.6;
+}
+
+.tip-line {
+  font-family: var(--font-hud);
+  font-size: 11px;
+  background: rgba(3, 6, 10, 0.5);
+  border: 1px solid rgba(226, 245, 255, 0.05);
+  padding: 4px 10px;
+  border-radius: 12px;
+  color: var(--color-text-dim);
+}
+
+/* --------------------------------------------------------------------------
+   9. Drag and Drop Overlay Shield
+   -------------------------------------------------------------------------- */
+.drag-shield {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(3, 6, 10, 0.95);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.3s ease;
+}
+
+.shield-border {
+  position: absolute;
+  top: 40px;
+  bottom: 40px;
+  left: 40px;
+  right: 40px;
+  border: 2px dashed var(--color-cyan);
+  box-shadow: inset 0 0 30px rgba(0, 243, 255, 0.1), 0 0 20px rgba(0, 243, 255, 0.2);
+  pointer-events: none;
+  animation: pulse-ring 4s infinite linear;
+}
+
+.shield-content {
+  text-align: center;
+  z-index: 101;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  pointer-events: none;
+}
+
+.shield-icon {
+  font-size: 60px;
+  color: var(--color-cyan);
+  text-shadow: 0 0 20px var(--color-cyan);
+  animation: float-slow 3s infinite ease-in-out;
+}
+
+.shield-content h2 {
+  font-family: var(--font-title);
+  font-weight: 800;
+  letter-spacing: 3px;
+  color: #fff;
+  text-shadow: 0 0 15px var(--color-cyan-glow);
+}
+
+.shield-content p {
+  font-family: var(--font-hud);
+  color: var(--color-cyan);
+  letter-spacing: 2px;
+  font-size: 14px;
+}
+
+/* --------------------------------------------------------------------------
+   10. Keyframe Animations
+   -------------------------------------------------------------------------- */
+@keyframes pulse-glow {
+  0%, 100% {
+    opacity: 1;
+    box-shadow: 0 0 8px var(--color-cyan);
+  }
+  50% {
+    opacity: 0.4;
+    box-shadow: 0 0 2px var(--color-cyan);
+  }
+}
+
+@keyframes pulse-ring {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes radar-sweep {
+  0% {
+    transform: scaleY(0);
+    opacity: 0.8;
+  }
+  80% {
+    transform: scaleY(1);
+    opacity: 0.1;
+  }
+  100% {
+    transform: scaleY(1);
+    opacity: 0;
+  }
+}
+
+@keyframes ping-expand {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(4);
+    opacity: 0;
+  }
+}
+
+@keyframes float-slow {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+.blink {
+  animation: text-blink 1s infinite steps(2);
+}
+
+.blink-slow {
+  animation: text-blink 2s infinite steps(2);
+}
+
+@keyframes text-blink {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.25;
+  }
+}
+
+@keyframes text-pulse {
+  from {
+    opacity: 0.7;
+    text-shadow: 0 0 4px var(--color-cyan-glow);
+  }
+  to {
+    opacity: 1;
+    text-shadow: 0 0 12px var(--color-cyan-glow), 0 0 20px var(--color-cyan-glow);
+  }
+}
+
+/* --------------------------------------------------------------------------
+   11. Responsiveness Adjustments
+   -------------------------------------------------------------------------- */
+@media (max-width: 1100px) {
+  #viewport-tips {
+    display: none;
+  }
+}
+
+@media (max-width: 800px) {
+  .hud-panel {
+    position: relative !important;
+    top: 0 !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    width: 100% !important;
+    height: auto !important;
+    margin-bottom: 20px;
+  }
+  #hud-overlay {
+    position: relative;
+    overflow-y: auto;
+    height: auto;
+    pointer-events: auto;
+  }
+  .hud-footer {
+    position: relative !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    width: 100% !important;
+    height: auto !important;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   12. WebXR (VR/AR) HUD Overlay Styles
+   -------------------------------------------------------------------------- */
+.xr-container {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  z-index: 1000;
+}
+
+.xr-container button {
+  position: relative !important;
+  top: auto !important;
+  left: auto !important;
+  right: auto !important;
+  bottom: auto !important;
+  transform: none !important;
+  background: rgba(8, 14, 22, 0.8) !important;
+  border: var(--border-glow) !important;
+  color: var(--color-cyan) !important;
+  font-family: var(--font-hud) !important;
+  font-size: 11px !important;
+  font-weight: bold !important;
+  letter-spacing: 1px !important;
+  padding: 6px 14px !important;
+  border-radius: var(--border-radius) !important;
+  cursor: pointer !important;
+  transition: all 0.3s ease !important;
+  backdrop-filter: blur(4px) !important;
+  box-shadow: 0 0 5px rgba(0, 243, 255, 0.15) !important;
+  text-transform: uppercase !important;
+}
+
+.xr-container button:hover {
+  background: var(--color-bg-active) !important;
+  border-color: var(--color-cyan) !important;
+  color: #fff !important;
+  text-shadow: 0 0 8px var(--color-cyan) !important;
+  box-shadow: 0 0 10px rgba(0, 243, 255, 0.4) !important;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+/* ==========================================================================
+   13. Holographic Sync Noise & Scanline Animation Styles for Thinking State
+   ========================================================================== */
+body.thinking-active .hud-noise-overlay {
+  opacity: 0.15 !important;
+  animation: noise-glitch 0.2s infinite;
+}
+
+body.thinking-active .hud-scanlines {
+  opacity: 1.0 !important;
+  animation: scanline-glitch 0.5s infinite linear;
+  background: linear-gradient(
+    rgba(0, 243, 255, 0.08) 50%, 
+    rgba(0, 0, 0, 0.4) 50%
+  ) 0 0/100% 6px !important;
+}
+
+body.thinking-active .pulse-dot {
+  background-color: var(--color-orange) !important;
+  box-shadow: 0 0 12px var(--color-orange) !important;
+  animation: pulse-glow-orange 0.5s infinite ease-in-out !important;
+}
+
+body.thinking-active #link-state-text {
+  color: var(--color-orange) !important;
+  text-shadow: 0 0 8px var(--color-orange-glow) !important;
+  animation: text-pulse-orange 0.3s infinite alternate !important;
+}
+
+body.thinking-active .subtitle-badge {
+  background: var(--color-orange) !important;
+  border-color: var(--color-orange) !important;
+  color: #fff !important;
+  box-shadow: 0 0 8px var(--color-orange-glow) !important;
+}
+
+@keyframes noise-glitch {
+  0% { transform: translate(0, 0); }
+  10% { transform: translate(-1px, -1px); }
+  20% { transform: translate(-2px, 1px); }
+  30% { transform: translate(1px, -2px); }
+  40% { transform: translate(-1px, 2px); }
+  50% { transform: translate(2px, 1px); }
+  60% { transform: translate(1px, -1px); }
+  70% { transform: translate(-2px, -2px); }
+  80% { transform: translate(2px, 1px); }
+  90% { transform: translate(-1px, -2px); }
+  100% { transform: translate(0, 0); }
+}
+
+@keyframes scanline-glitch {
+  0% { background-position: 0 0; }
+  100% { background-position: 0 100%; }
+}
+
+@keyframes pulse-glow-orange {
+  0%, 100% { opacity: 1; box-shadow: 0 0 12px var(--color-orange); }
+  50% { opacity: 0.3; box-shadow: 0 0 3px var(--color-orange); }
+}
+
+@keyframes text-pulse-orange {
+  0% { opacity: 0.6; text-shadow: 0 0 4px var(--color-orange-glow); }
+  100% { opacity: 1; text-shadow: 0 0 12px var(--color-orange-glow); }
+}
+
+/* ==========================================================================
+   14. Holographic Curved Web Visor Overlay (Quest / Iron Man Browser Style)
+   ========================================================================== */
+.web-visor-panel {
+  position: absolute;
+  top: 90px;
+  left: 20px; /* Overlay on top of SENSORY DIAGNOSTICS on the left, keeping center free */
+  width: 620px;
+  height: 470px;
+  background: rgba(4, 9, 15, 0.65);
+  border: 1px solid rgba(0, 243, 255, 0.25);
+  border-radius: 12px;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  box-shadow: 0 15px 45px rgba(0, 0, 0, 0.8), 0 0 25px rgba(0, 243, 255, 0.15);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  z-index: 10;
+  pointer-events: auto;
+  
+  /* Futuristic Curved 3D perspective warp curved in from the left side! */
+  transform: perspective(1200px) rotateY(8deg) rotateX(1.5deg) translate3d(0, 0, 10px);
+  transform-style: preserve-3d;
+  transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.web-visor-panel.hidden {
+  display: none !important;
+  opacity: 0;
+  transform: perspective(1200px) rotateY(8deg) rotateX(1.5deg) translate3d(-50px, 0, -200px) scale(0.85);
+}
+
+/* Corner decorative brackets */
+.web-visor-panel::before, .web-visor-panel::after {
+  content: '';
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  border-color: var(--color-cyan);
+  border-style: solid;
+  pointer-events: none;
+  z-index: 12;
+}
+.web-visor-panel::before {
+  top: -1px;
+  left: -1px;
+  border-width: 3px 0 0 3px;
+  box-shadow: -2px -2px 8px rgba(0, 243, 255, 0.4);
+}
+.web-visor-panel::after {
+  bottom: -1px;
+  right: -1px;
+  border-width: 0 3px 3px 0;
+  box-shadow: 2px 2px 8px rgba(0, 243, 255, 0.4);
+}
+
+.web-visor-panel:hover {
+  border-color: rgba(0, 243, 255, 0.6);
+  background: rgba(4, 9, 15, 0.75);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.9), 0 0 30px rgba(0, 243, 255, 0.3);
+  transform: perspective(1200px) rotateY(4deg) rotateX(0.5deg) translate3d(0, 0, 25px);
+}
+
+.visor-border-glow {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, var(--color-cyan), transparent);
+}
+
+/* Title Header */
+.visor-header {
+  padding: 12px 18px;
+  background: rgba(0, 243, 255, 0.05);
+  border-bottom: 1px solid rgba(0, 243, 255, 0.15);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-family: var(--font-title);
+}
+
+.visor-title-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.visor-status-dot {
+  width: 8px;
+  height: 8px;
+  background-color: var(--color-cyan);
+  border-radius: 50%;
+  box-shadow: 0 0 8px var(--color-cyan);
+  animation: pulse-glow 1.5s infinite;
+}
+
+.visor-title {
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 1.5px;
+  color: var(--color-cyan);
+  text-shadow: 0 0 8px var(--color-cyan-glow);
+}
+
+.visor-controls {
+  display: flex;
+  gap: 12px;
+}
+
+.visor-ctrl-btn {
+  color: var(--color-text-dim);
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 14px;
+  transition: color 0.2s;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.visor-ctrl-btn:hover {
+  color: #fff;
+}
+
+#visor-close-btn:hover {
+  color: var(--color-orange);
+}
+
+/* Address bar */
+.visor-address-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 15px;
+  background: rgba(0, 0, 0, 0.3);
+  border-bottom: 1px solid rgba(0, 243, 255, 0.1);
+}
+
+.address-label {
+  font-family: var(--font-hud);
+  font-size: 10px;
+  color: var(--color-cyan);
+}
+
+.visor-input {
+  flex: 1;
+  background: rgba(4, 9, 15, 0.8);
+  border: 1px solid rgba(0, 243, 255, 0.15);
+  border-radius: 4px;
+  padding: 4px 10px;
+  color: var(--color-text-dim);
+  font-family: var(--font-hud);
+  font-size: 11px;
+  outline: none;
+}
+
+/* Iframe frame container */
+.visor-frame-container {
+  flex: 1;
+  position: relative;
+  background: rgba(0, 0, 0, 0.2);
+}
+
+#visor-iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+  background: transparent;
+}
+
+@media (max-width: 1300px) {
+  .web-visor-panel {
+    right: 20px;
+    top: 90px;
+    width: calc(100% - 40px);
+    max-width: 580px;
+    transform: none !important;
+  }
+  .web-visor-panel:hover {
+    transform: translateY(-2px) !important;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   14. Cyberpunk Warning Modal (Ollama Prod Warn)
+   -------------------------------------------------------------------------- */
+.cyber-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(4, 6, 9, 0.85);
+  backdrop-filter: blur(10px);
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 1;
+  transition: opacity 0.3s ease;
+  pointer-events: auto;
+}
+
+.cyber-modal-overlay.hidden {
+  display: none !important;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.cyber-modal-box {
+  width: 90%;
+  max-width: 500px;
+  background: rgba(8, 14, 22, 0.95);
+  border: 1.5px solid var(--color-orange);
+  border-radius: 8px;
+  box-shadow: 0 10px 40px rgba(255, 108, 0, 0.25), var(--panel-shadow);
+  padding: 24px;
+  position: relative;
+  font-family: var(--font-ui);
+  transition: transform 0.3s ease;
+  animation: modal-slide-up 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  pointer-events: auto;
+}
+
+@keyframes modal-slide-up {
+  from {
+    transform: translateY(30px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.cyber-modal-box::before, .cyber-modal-box::after {
+  content: '';
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  border-color: var(--color-orange);
+  border-style: solid;
+  pointer-events: none;
+}
+
+.cyber-modal-box::before {
+  top: -1px;
+  left: -1px;
+  border-width: 2px 0 0 2px;
+}
+
+.cyber-modal-box::after {
+  bottom: -1px;
+  right: -1px;
+  border-width: 0 2px 2px 0;
+}
+
+.cyber-modal-header {
+  border-bottom: 1px solid rgba(255, 108, 0, 0.3);
+  padding-bottom: 12px;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.cyber-modal-title {
+  font-family: var(--font-title);
+  font-weight: 800;
+  font-size: 14px;
+  letter-spacing: 1.5px;
+  color: var(--color-orange);
+  text-shadow: 0 0 8px var(--color-orange-glow);
+}
+
+.cyber-modal-body {
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--color-text-bright);
+  margin-bottom: 20px;
+}
+
+.cyber-modal-body p {
+  margin-bottom: 12px;
+}
+
+.cyber-modal-body strong {
+  color: var(--color-orange);
+}
+
+.cyber-modal-body ul {
+  padding-left: 20px;
+  margin-bottom: 12px;
+}
+
+.cyber-modal-body li {
+  margin-bottom: 6px;
+}
+
+.cyber-modal-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.cyber-modal-dismiss-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-family: var(--font-hud);
+  font-size: 11px;
+  color: var(--color-text-dim);
+}
+
+.cyber-modal-dismiss-option input {
+  cursor: pointer;
+  accent-color: var(--color-orange);
+}
+
+.cyber-modal-btn {
+  width: 100%;
+  background: rgba(255, 108, 0, 0.1);
+  border: 1.5px solid var(--color-orange);
+  font-family: var(--font-hud);
+  font-size: 13px;
+  font-weight: bold;
+  letter-spacing: 1.5px;
+  padding: 12px;
+  border-radius: var(--border-radius);
+  color: var(--color-orange);
+  cursor: pointer;
+  outline: none;
+  transition: all 0.3s ease;
+  text-align: center;
+}
+
+.cyber-modal-btn:hover {
+  background: rgba(255, 108, 0, 0.25);
+  box-shadow: 0 0 15px var(--color-orange-glow);
+  color: #fff;
+  text-shadow: 0 0 8px var(--color-orange);
+}
+
+

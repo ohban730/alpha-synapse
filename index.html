@@ -1,0 +1,316 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ALPHA Augmented Reality - Neural Link Simulator</title>
+    <!-- Google Fonts for Futuristic / Tactical Aesthetics -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;800;900&family=Share+Tech+Mono&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+  </head>
+  <body>
+    <!-- 3D Canvas Background -->
+    <canvas id="canvas-3d"></canvas>
+
+    <!-- Moving Scanlines & Grid Effects for AR HUD Vibe -->
+    <div class="hud-scanlines"></div>
+    <div class="hud-noise-overlay"></div>
+    <div class="hud-vignette"></div>
+
+    <!-- MAIN HUD OVERLAY -->
+    <div id="hud-overlay">
+      
+      <!-- TOP STATUS BAR -->
+      <header class="hud-header">
+        <div class="header-left">
+          <div class="pulse-dot"></div>
+          <span class="status-title">NEURAL LINK STATE: <span id="link-state-text" class="glow-cyan">SYNAPSED</span></span>
+        </div>
+        <div class="header-center">
+          <span class="hud-main-title">ALPHA SYNAPSE ENGINE v1.9</span>
+        </div>
+        <div class="header-right">
+          <!-- WebXR (VR/AR) entry buttons will be appended here -->
+          <div id="xr-button-container" class="xr-container"></div>
+          <span class="hud-timer">SYS_TIME: <span id="sys-timer">00:00:00</span></span>
+        </div>
+      </header>
+
+      <!-- LEFT DIAGNOSTICS PANEL -->
+      <aside class="hud-panel panel-left">
+        <div class="panel-border-glow"></div>
+        <div class="panel-header">
+          <span class="panel-icon">▲</span> SENSORY DIAGNOSTICS
+        </div>
+        <div class="panel-body">
+          <!-- Live performance and projection stats -->
+          <div class="diagnostic-row">
+            <span class="diag-label">PROJECTION SYNC:</span>
+            <span class="diag-value glow-cyan" id="diag-sync-rate">99.9%</span>
+          </div>
+          <div class="diagnostic-row">
+            <span class="diag-label">COG_LOAD (CPU):</span>
+            <span class="diag-value" id="diag-cpu">8.5%</span>
+          </div>
+          <div class="diagnostic-row">
+            <span class="diag-label">API_LATENCY:</span>
+            <span class="diag-value glow-cyan" id="diag-latency">-- ms</span>
+          </div>
+          <div class="diagnostic-row">
+            <span class="diag-label">ACTIVE_MODEL:</span>
+            <span class="diag-value glow-cyan" id="diag-active-model">--</span>
+          </div>
+          
+          <div class="hud-separator"></div>
+          
+          <!-- Environment profile -->
+          <div class="control-group">
+            <label class="control-label">ENVIRONMENT SCAN (環境スキャン)</label>
+            <div class="diagnostic-row">
+              <span class="diag-label">CLIENT_OS (接続OS):</span>
+              <span class="diag-value" id="diag-os">DETECTING...</span>
+            </div>
+            <div class="diagnostic-row">
+              <span class="diag-label">VIEWPORT_RES (解像度):</span>
+              <span class="diag-value" id="diag-resolution">0 x 0</span>
+            </div>
+            <div class="diagnostic-row">
+              <span class="diag-label">NETWORK_SYNC (回線状態):</span>
+              <span class="diag-value glow-cyan" id="diag-network">ONLINE</span>
+            </div>
+          </div>
+
+          <div class="hud-separator"></div>
+
+          <div class="diagnostic-notes" id="diag-log-notes">
+            <div class="note-line blink-slow">&gt;&gt; システム自己診断: 同期安定</div>
+            <div class="note-line glow-cyan">&gt;&gt; 総会話セッション回数: 0</div>
+          </div>
+        </div>
+      </aside>
+
+      <!-- RIGHT NEURAL LINK & INTERFACE PANEL -->
+      <aside class="hud-panel panel-right">
+        <div class="panel-border-glow"></div>
+        <div class="panel-header">
+          <span class="panel-icon">▼</span> NEURAL LINK OPTIONS
+        </div>
+        <div class="panel-body">
+          
+          <!-- Sync Link Type Selection -->
+          <div class="control-group">
+            <label class="control-label">INTELLIGENCE SYNC CORE</label>
+            <div class="select-wrapper">
+              <select id="link-type-select">
+                <option value="offline" selected>スタンドアロン基本AI (オフライン/デモ)</option>
+                <option value="gemini">Gemini API (推奨/オンライン)</option>
+                <option value="ollama">Ollama (ローカルLLM)</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Gemini Configuration -->
+          <div id="gemini-config-group" class="config-subgroup hidden">
+            <div class="control-group">
+              <label class="control-label">GEMINI API KEY</label>
+              <input type="password" id="gemini-key" placeholder="APIキーを入力してください..." class="hud-input" />
+              <span class="input-tip">キーはローカルブラウザにのみ保存されます。</span>
+            </div>
+            <div class="control-group">
+              <label class="control-label">GEMINI MODEL</label>
+              <div class="select-wrapper">
+                <select id="gemini-model-select">
+                  <option value="gemini-3.5-flash" selected>Gemini 3.5 Flash</option>
+                  <option value="gemini-3.1-pro-preview">Gemini 3.1 Pro (Preview)</option>
+                  <option value="gemini-3-flash">Gemini 3 Flash</option>
+                  <option value="gemini-3.1-flash-lite">Gemini 3.1 Flash-Lite</option>
+                  <option value="gemini-2.5-flash">Gemini 2.5 Flash</option>
+                  <option value="gemini-2.5-pro">Gemini 2.5 Pro</option>
+                </select>
+              </div>
+            </div>
+            <div class="control-group">
+              <label class="control-label">GEMINI TTS MODEL (音声モデル)</label>
+              <div class="select-wrapper">
+                <select id="gemini-tts-model-select">
+                  <option value="auto" selected>自動選択・制限回避 (推奨)</option>
+                  <option value="gemini-2.5-flash-preview-tts">Gemini 2.5 Flash TTS</option>
+                  <option value="gemini-3.1-flash-tts">Gemini 3.1 Flash TTS</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- Ollama Configuration -->
+          <div id="ollama-config-group" class="config-subgroup hidden">
+            <div class="control-group">
+              <label class="control-label">OLLAMA ENDPOINT</label>
+              <input type="text" id="ollama-endpoint" value="http://localhost:11434" class="hud-input" />
+            </div>
+            <div class="control-group">
+              <label class="control-label">MODEL NAME</label>
+              <input type="text" id="ollama-model" placeholder="gemma2, llama3, etc." value="gemma2" class="hud-input" />
+              <span class="input-tip">事前にOllama側で `OLLAMA_ORIGINS="*"` を設定してください。</span>
+            </div>
+            <!-- Quest 3 / WebXR Warning -->
+            <div class="warning-box text-orange" id="ollama-xr-warning" style="margin-top: 10px; font-size: 11px; line-height: 1.4; border: var(--border-glow-orange); padding: 8px; background: rgba(255, 108, 0, 0.05); border-radius: var(--border-radius); font-family: var(--font-hud);">
+              ⚠️ <strong>Meta Quest 3等での接続警告:</strong><br>
+              VR/ARゴーグル内ブラウザでプレイする場合、<code>localhost</code> はPCではなくゴーグル自身を指すため接続できません。<br>
+              ヘッドセットから接続するには、PC側でOllamaを外部公開（<code>OLLAMA_HOST=0.0.0.0</code>）に設定し、ENDPOINTにPCの「ローカルIPアドレス」を指定する必要があります。
+            </div>
+          </div>
+
+          <!-- Voice Synthesizer Configuration -->
+          <div class="control-group">
+            <label class="control-label">ALPHA SYSTEM VOICE</label>
+            <div class="select-wrapper">
+              <select id="voice-select">
+                <option value="">ボイス読み込み中...</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- VRM File Selector Button (Meta Quest 3 Friendly) -->
+          <div class="control-group">
+            <label class="control-label">ALPHA VRM PROJECTION</label>
+            <button id="vrm-select-btn" class="hud-btn glow-cyan-btn">VRMファイルをロード</button>
+            <input type="file" id="vrm-file-input" accept=".vrm" style="display: none;" />
+          </div>
+
+          <!-- Save Button -->
+          <button id="save-settings-btn" class="hud-btn glow-cyan-btn">ニューラルリンクを同期</button>
+
+          <div class="hud-separator"></div>
+
+          <!-- Chat logs brief display with Copy Button -->
+          <div class="logs-header-row">
+            <label class="control-label">SYS_LOG (会話履歴)</label>
+            <button id="copy-logs-btn" class="hud-mini-btn">COPY LOGS</button>
+          </div>
+          <div id="chat-logs" class="chat-logs-container">
+            <div class="log-entry system">&gt;&gt; 精神共有リンク 初期化完了。</div>
+            <div class="log-entry system">&gt;&gt; アルファ投影モデル: 未同期。</div>
+            <div class="log-entry system text-orange">&gt;&gt; 警告: VRMファイルを画面にドラッグ＆ドロップしてアルファの3D外見をマテリアライズしてください。</div>
+          </div>
+
+          <!-- Text Interaction Input -->
+          <div class="interaction-input-group">
+            <input type="text" id="chat-text-input" placeholder="アルファにメッセージを入力..." class="hud-input input-message" />
+            <button id="send-text-btn" class="hud-btn glow-btn btn-send">送信</button>
+          </div>
+
+          <!-- Neural Voice Link button (Voice Interaction) -->
+          <div class="voice-link-container">
+            <button id="voice-neural-btn" class="voice-neural-button">
+              <div class="voice-btn-ring"></div>
+              <div class="voice-btn-core"></div>
+              <span class="voice-btn-text">NEURAL LINK (音声対話)</span>
+            </button>
+            <span id="stt-status-text" class="voice-status">音声リンク: 切断</span>
+          </div>
+
+        </div>
+      </aside>
+
+      <!-- BOTTOM CENTER GRAPHIC SUBTITLE PANEL -->
+      <footer class="hud-footer">
+        <!-- DECIBEL FREQUENCY WAVEFORM -->
+        <div class="frequency-waveform-container">
+          <div class="freq-bar" style="--i:1"></div>
+          <div class="freq-bar" style="--i:2"></div>
+          <div class="freq-bar" style="--i:3"></div>
+          <div class="freq-bar" style="--i:4"></div>
+          <div class="freq-bar" style="--i:5"></div>
+          <div class="freq-bar" style="--i:6"></div>
+          <div class="freq-bar" style="--i:7"></div>
+          <div class="freq-bar" style="--i:8"></div>
+          <div class="freq-bar" style="--i:9"></div>
+          <div class="freq-bar" style="--i:10"></div>
+          <div class="freq-bar" style="--i:11"></div>
+          <div class="freq-bar" style="--i:12"></div>
+          <div class="freq-bar" style="--i:13"></div>
+          <div class="freq-bar" style="--i:14"></div>
+          <div class="freq-bar" style="--i:15"></div>
+        </div>
+
+        <div class="hud-subtitle-box">
+          <div class="subtitle-badge">AI_PROJECTION: ALPHA</div>
+          <button id="copy-subtitle-btn" class="subtitle-copy-btn">COPY TEXT</button>
+          <div class="subtitle-text-container">
+            <p id="subtitle-output" class="subtitle-text">
+              マスター、精神共有リンクを確立しました。私の姿がちゃんと見えていますか？まずはあなたのVRMファイルを画面にドラッグ＆ドロップして、私の高解像度投影体を同期させてください。
+            </p>
+          </div>
+        </div>
+      </footer>
+
+      <!-- MODEL OVERLAY INFO IN VIEWPORT -->
+      <div id="viewport-tips">
+        <span class="tip-line"><span class="glow-cyan">[DRAG & DROP]</span> VRMファイル（.vrm）をドロップしてモデルを同期</span>
+        <span class="tip-line"><span class="glow-cyan">[MOUSE INTERACT]</span> ドラッグで視点変更 / ポインタで視線追従</span>
+      </div>
+
+      <!-- HOLOGRAPHIC CURVED WEB VISOR PANEL (Quest / Iron Man style browser overlay) -->
+      <div id="hud-web-visor" class="web-visor-panel hidden">
+        <div class="visor-border-glow"></div>
+        <div class="visor-header">
+          <div class="visor-title-group">
+            <span class="visor-status-dot"></span>
+            <span class="visor-title">ALPHA SYNAPSE VISOR - WEB PORTAL</span>
+          </div>
+          <div class="visor-controls">
+            <span id="visor-minimize-btn" class="visor-ctrl-btn">—</span>
+            <span id="visor-close-btn" class="visor-ctrl-btn">×</span>
+          </div>
+        </div>
+        <div class="visor-address-bar">
+          <span class="address-label">SECURE_LINK:</span>
+          <input type="text" id="visor-url-input" class="visor-input" value="https://news.yahoo.co.jp/" readonly />
+        </div>
+        <div class="visor-frame-container">
+          <iframe id="visor-iframe" src="" frameborder="0" sandbox="allow-scripts allow-same-origin allow-popups allow-forms"></iframe>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- CYBERPUNK WARNING MODAL FOR OLLAMA PRODUCTION SYNC -->
+    <div id="ollama-warn-modal" class="cyber-modal-overlay hidden">
+      <div class="cyber-modal-box">
+        <div class="cyber-modal-header">
+          <span class="cyber-modal-title">▲ WARNING: LOCAL SYNC IN PRODUCTION</span>
+        </div>
+        <div class="cyber-modal-body">
+          <p>デモ用Webサイト（HTTPS）からローカルの Ollama サーバーに同期する場合、ブラウザの強力なセキュリティ規制（<strong>CORS / Mixed Content制限</strong>）により接続エラーが発生しやすくなります。</p>
+          <p>本機能（ローカルLLMモード）を安全・快適にお試しいただくには、次の手順を強く推奨します：</p>
+          <ul>
+            <li>本リポジトリをご自身のPCにクローンする</li>
+            <li>環境変数 <code>OLLAMA_ORIGINS="*"</code> をセットする</li>
+            <li><code>npm run dev</code> を実行し、<strong>ローカルHTTP環境</strong>で起動してアクセスする</li>
+          </ul>
+          <p>※このままデモサイト上で同期を試す場合は、事前にローカルのOllamaでCORS許可設定を完了させてください。</p>
+        </div>
+        <div class="cyber-modal-footer">
+          <label class="cyber-modal-dismiss-option">
+            <input type="checkbox" id="ollama-warn-dismiss" />
+            <span>次回からこの警告を表示しない (DISMISS PERMANENTLY)</span>
+          </label>
+          <button id="ollama-warn-btn" class="cyber-modal-btn">ACKNOWLEDGE &amp; SYNC / 了解</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- DRAG AND DROP SYNC HOVER SHIELD -->
+    <div id="drag-drop-shield" class="drag-shield hidden">
+      <div class="shield-border"></div>
+      <div class="shield-content">
+        <div class="shield-icon">⏏</div>
+        <h2>DETECTION: VRM DATA ARCHIVE SOURCE</h2>
+        <p class="blink">&gt;&gt; ドロップしてアルファの3D高周波投影体と精神同期を開始 &lt;&lt;</p>
+      </div>
+    </div>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
