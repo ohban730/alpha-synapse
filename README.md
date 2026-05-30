@@ -1,181 +1,184 @@
+🇺🇸 **English** | 🇯🇵 [日本語版](README.ja.md)
+
 # 🌌 Alpha Synapse
 
 [![Demo Site](https://img.shields.io/badge/Demo_Site-alpha--xr.org-00f3ff.svg?style=flat-square)](https://alpha-xr.org)
 [![Cyberpunk Vibe](https://img.shields.io/badge/Theme-Cyberpunk_Visor-orange.svg?style=flat-square)](#)
 [![Tech Stack](https://img.shields.io/badge/Tech-Three.js_|_VRM_|_WebXR-00f3ff.svg?style=flat-square)](#)
 
-ユーザーの視界に高解像度投影される専属AIアシスタント『アルファ』と精神同期し、未来的なタクティカルAR-HUDを通じて音声やテキストで対話ができる、3D拡張現実シミュレーターです。
+A 3D Augmented Reality simulator where you synchronize with "Alpha", an advanced personal AI assistant projected into your field of view, and interact with her using voice or text through a futuristic tactical AR HUD.
 
-🌐 **オンラインデモサイト：** [https://alpha-xr.org](https://alpha-xr.org)
-
----
-
-## 💎 完全BYO（Bring Your Own）モデル
-
-本システムは、プライバシーの保護と開発者のサーバー維持費用の破産リスクをゼロにするため、アバターとAIインテリジェンスの両方をユーザー自身が持ち込む **『完全BYO（Bring Your Own）』方式** を採用しています。
-
-*   **アバター (BYO-Avatar)**: ユーザー自身のVRM形式（.vrm）の3Dアバターファイルを画面にドラッグ＆ドロップして同期します。
-*   **クラウドAI (BYO-Key)**: ユーザー自身のGoogle Gemini APIキーを入力することで、クラウド接続を確立します。
-*   **ローカルAI (BYO-LLM)**: ユーザー自身のPCで起動しているOllamaサーバーと通信し、完全無料でクローズドな対話を確立します。
+🌐 **Online Live Demo:** [https://alpha-xr.org](https://alpha-xr.org)
 
 ---
 
-## 📋 動作前提条件 (Prerequisites)
+## 💎 Complete BYO (Bring Your Own) Model
 
-本プロジェクトをご自身のPCでビルド・動作させるには、以下がインストールされている必要があります：
+To maximize user privacy and keep the developer's server maintenance costs at absolute zero, this system operates on a **Complete BYO (Bring Your Own)** architecture. You bring both your visual assets and your own AI brain:
 
-*   **Node.js**: `v18.0.0` 以上 (LTS `v20.0.0` 以上推奨 / **検証済み環境: `v24.15.0`**)
-*   **NPM**: `v10.0.0` 以上 (**検証済み環境: `v11.12.1`**)
+*   **BYO Avatar**: Synchronize your own custom 3D avatar (.vrm format) by simply dragging and dropping it into the browser.
+*   **BYO Cloud Key**: Set up high-fidelity cloud connection by entering your personal Google Gemini API key.
+*   **BYO Local LLM**: Achieve complete local privacy and unlimited free usage by connecting the app to an Ollama server running on your local machine.
 
 ---
 
-## 🚀 クローンと初期セットアップ
+## 📋 Prerequisites
 
-リポジトリをご自身のPCにクローンし、依存関係を解決してローカルHTTP開発サーバーを立ち上げます。
+To clone, build, and run this project on your machine, you must have the following installed:
+
+*   **Node.js**: `v18.0.0` or higher (LTS `v20.0.0`+ recommended / **Verified environment: `v24.15.0`**)
+*   **NPM**: `v10.0.0` or higher (**Verified environment: `v11.12.1`**)
+
+---
+
+## 🚀 Cloning & Initial Setup
+
+Clone the repository to your local machine, install the dependencies, and launch the local HTTP development server.
 
 ```bash
-# 依存関係のインストール
+# Clone the repository and navigate into it
+git clone https://github.com/your-username/alpha-synapse.git
+cd alpha-synapse
+
+# Install dependencies
 npm install
 
-# ローカル開発サーバーの起動 (既定ポート: http://localhost:3000)
+# Start the local development server (Default port: http://localhost:3000)
 npm run dev
 ```
 
 ---
 
-## ☁️ クラウドLLM（Google Gemini API）連携ガイド
+## ☁️ Cloud LLM (Google Gemini API) Setup Guide
 
-最も高精度で、流暢な音声による会話をすぐに楽しめる**推奨モード**です。
-*※クラウド接続は、現在 **Google Gemini APIのみ** の使用を想定して作られています（今後のアップデートで他のクラウドLLMも拡張予定です）。*
+This is the **highly recommended mode** to experience maximum AI intelligence and beautifully natural, high-fidelity voice dialogue immediately.
+*Note: The cloud LLM pipeline is currently designed specifically around the **Google Gemini API** (future updates plan to add other cloud providers).*
 
-### 1. APIキーの取得
-1. [Google AI Studio](https://aistudio.google.com/) にアクセスし、無料の API キーを発行します。
-2. 発行された API キーをコピーします。
+### 1. Retrieve Your API Key
+1. Visit [Google AI Studio](https://aistudio.google.com/) and generate a free API key.
+2. Copy the generated key.
 
-### 2. アプリでの設定手順
-1. アプリ画面（デモサイト `https://alpha-xr.org`、またはローカル起動画面）を開します。
-2. 画面右側の **「NEURAL LINK OPTIONS」** パネルを開きます。
-3. **「INTELLIGENCE SYNC CORE」** で **「Gemini API (推奨/オンライン)」** を選択します。
-4. **「GEMINI API KEY」** 欄にコピーした API キーを貼り付けます。
-5. **「GEMINI MODEL」** で利用したいモデル（既定: `Gemini 3.5 Flash`）を選択します。
-6. **「ニューラルリンクを同期」** ボタンをクリックします。
+### 2. Configure the App
+1. Open the application (via the live demo `https://alpha-xr.org` or your local development URL).
+2. Expand the **"NEURAL LINK OPTIONS"** panel on the right side of the screen.
+3. Select **"Gemini API (Recommended/Online)"** under the **"INTELLIGENCE SYNC CORE"** setting.
+4. Paste your copied API key into the **"GEMINI API KEY"** input field.
+5. Select your preferred model (Default: `Gemini 3.5 Flash`) under **"GEMINI MODEL"**.
+6. Click the **"Sync Neural Link"** button to establish the link.
 
-### 💎 Geminiモードのメリット
-*   **最高峰の知能**: 最新のLLMによるスムーズで賢い対話が可能です。
-*   **ネイティブ音声合成 (Native TTS)**: 高音質な6種類の公式AIボイス（Leda, Aoede 等）による美しく自然な日本語発声に対応しています。
-*   **音声入力の直接処理**: 音声を直接認識してアルファに伝達する「マイク録音送信」が機能します。
+### 💎 Key Advantages of Gemini Mode
+*   **State-of-the-Art Intelligence**: Seamless, smart, and context-aware responses driven by Google's latest models.
+*   **Native TTS (Text-to-Speech)**: Extremely natural speech synthesis featuring 6 official high-quality voice profiles (Leda, Aoede, etc.) tuned for elegant Japanese pronunciation.
+*   **Direct Audio Stream Processing**: Talk directly using your voice; the app handles direct mic capture streams to feed the LLM.
 
 ---
 
-## 🛠️ ローカルLLM（Ollama）連携ガイド
+## 🛠️ Local LLM (Ollama) Setup Guide
 
-クラウドAPIやインターネット接続を行わず、完全プライベートかつ無料で無制限にAIと対話できる**上級者向けモード**です。
+A **power-user mode** that operates entirely offline, keeping your conversations 100% private, free, and unrestricted.
 
 > [!WARNING]
-> デモWebサイト（HTTPS: `https://alpha-xr.org`）からローカルサービス（HTTP）への接続は、ブラウザのセキュリティ制限（CORS/Mixed Content）がかかります。
-> ローカルLLMモードをお試しいただく場合は、**必ず本リポジトリをご自身のPCにクローンし、ローカルHTTP環境（`http://localhost:3000`）で起動して実行してください。**
+> Accessing a local HTTP service (`http://localhost:11434`) from a remote secure HTTPS website (`https://alpha-xr.org`) is generally blocked by browser **CORS & Mixed Content policies**.
+> To use the Local LLM mode, **you must clone this repository and run the app locally via `http://localhost:3000` (Local HTTP Context).**
 
-### 1. OllamaのCORS（クロスオリジン許可）設定
-ブラウザの安全制限をバイパスしてWebアプリからローカルのOllamaにリクエストを通すため、環境変数 `OLLAMA_ORIGINS` をセットした状態で起動する必要があります。
+### 1. Configure CORS in Ollama
+To allow your web browser to communicate with your local Ollama server, you must launch Ollama with the `OLLAMA_ORIGINS` environment variable set to `*` (or to your specific origin).
 
-#### 💻 Windowsの場合 (推奨: システム環境変数への登録)
-1. `Win + R` キーを押し、`sysdm.cpl` を入力して実行します（システムのプロパティ）。
-2. **「詳細設定」** タブ ＞ 一番下の **「環境変数...」** をクリックします。
-3. 新規に変数を作成します：
-   * **変数名:** `OLLAMA_ORIGINS`
-   * **変数値:** `*`
-4. すべてOKをクリックして適用します。
-5. **重要:** タスクバーのシステムトレイにある Ollama アイコンを右クリックして **「Quit Ollama」で完全に終了** させてから、スタートメニューから再起動してください。
+#### 💻 On Windows (Recommended: Global System Environment Variable)
+1. Press `Win + R`, type `sysdm.cpl` and hit Enter to open **System Properties**.
+2. Navigate to the **"Advanced"** tab and click **"Environment Variables..."**.
+3. Under System Variables (or User Variables), click **"New..."** to add a variable:
+   *   **Variable Name:** `OLLAMA_ORIGINS`
+   *   **Variable Value:** `*`
+4. Click OK on all windows to apply the setting.
+5. **CRITICAL STEP**: Right-click the Ollama icon in the Windows system tray and select **"Quit Ollama"**, then launch it again from the Start Menu to load the new global environment variable.
 
-*(一時的にターミナルだけで試す場合は、コマンドプロンプトで `set OLLAMA_ORIGINS=*` または PowerShellで `$env:OLLAMA_ORIGINS="*"` を実行したあと、同ウィンドウ内で `ollama serve` を実行します)*
+*(If you only want to test via terminal, run `set OLLAMA_ORIGINS=*` in Command Prompt or `$env:OLLAMA_ORIGINS="*"` in PowerShell, then run `ollama serve` in the same window)*
 
-#### 🍎 macOSの場合
-Ollama アプリを一度終了させた状態で、ターミナルから以下を実行して起動します：
+#### 🍎 On macOS
+Make sure the Ollama application is completely closed, then launch it from the terminal with the variable prepended:
 ```bash
 OLLAMA_ORIGINS="*" open -a Ollama
 ```
 
-#### 🐧 Linuxの場合
-システムサービスの設定を編集します：
+#### 🐧 On Linux
+Edit the system service configuration:
 ```bash
 sudo systemctl edit ollama.service
 ```
-開いたエディタに以下を追記して保存します：
+Add the environment line in the configuration block and save:
 ```ini
 [Service]
 Environment="OLLAMA_ORIGINS=*"
 ```
-その後、サービスをリロードして再起動します：
+Reload systemd and restart the service:
 ```bash
 sudo systemctl daemon-reload
 sudo systemctl restart ollama
 ```
 
-### 2. モデルのダウンロード (Pull)
-本シミュレーターの既定モデル（またはお好みのモデル）を事前にローカルPCにダウンロードしておきます。
+### 2. Download the Model (Pull)
+Ensure the model specified in the app is downloaded locally:
 
 ```bash
-# Llama 3.2 3Bモデルをダウンロードする場合 (推奨軽量モデル)
+# Pull Llama 3.2 3B (Recommended lightweight model)
 ollama pull llama3.2
 ```
 
-### 3. アプリケーションでの接続確認
-1. ブラウザで `http://localhost:3000` を開きます。
-2. 画面右側の **「NEURAL LINK OPTIONS」** パネルを開きます。
-3. **「INTELLIGENCE SYNC CORE」** で **「Ollama (ローカルLLM)」** を選択します。
-4. **「MODEL NAME」** にダウンロードした正確なモデル名（例: `llama3.2`）を入力します。
-5. **「ニューラルリンクを同期」** ボタンをクリックします。
-6. チャットや音声対話を行い、アルファが応答すれば同期は成功です！
+### 3. Establish Sync in App
+1. Open your browser to `http://localhost:3000`.
+2. Expand the **"NEURAL LINK OPTIONS"** panel on the right.
+3. Select **"Ollama (Local LLM)"** in the sync core dropdown.
+4. Set the **"MODEL NAME"** input to your downloaded model (e.g., `llama3.2`).
+5. Click **"Sync Neural Link"**.
+6. Chat using voice or text; Alpha will begin generating local responses!
 
 ---
 
-## ⚡ トラブルシューティング (Ollama接続時)
+## ⚡ Troubleshooting (Ollama Connections)
 
-### 🔴 会話時に "Failed to fetch"（接続失敗）のエラーが出る
-1. **Ollamaが起動しているか確認:**
-   ブラウザで `http://localhost:11434` にアクセスし、画面に `Ollama is running` と表示されるか確認してください。
-2. **CORS設定の漏れ:**
-   `OLLAMA_ORIGINS` 環境変数が適用されていない可能性が高いです。特にWindowsの場合、Ollamaトレイアイコンからの「終了＆再起動」が行われているかを再確認してください。
-3. **HTTPS本番デモサイトからのアクセス制限:**
-   本番HTTPSの公開サイト（`https://alpha-xr.org`）からアクセスする場合、一部のブラウザのMixed Content規制に引っかかる場合があります。その場合は上記の手順に従い、ローカルで `npm run dev`（HTTP接続）した環境からアクセスしてください。
+### 🔴 "Failed to Fetch" Error during Chat
+1.  **Check if Ollama is running**: Visit `http://localhost:11434` in your browser. It should output `Ollama is running`.
+2.  **CORS Variable Missing**: Ensure `OLLAMA_ORIGINS` is configured correctly and the Ollama server has been *fully* restarted (not just minimized).
+3.  **HTTPS Mixed Content Restriction**: If you are accessing the app via the production HTTPS URL (`https://alpha-xr.org`), strict browsers (like Safari) will block fetches to `http://localhost`. Run the app locally over HTTP via `npm run dev` to bypass this.
 
 ---
 
-## 🛠️ Development & Transparency（開発の透明性）
+## 🛠️ Development & Transparency (OSS Policy)
 
-本プロジェクトをオープンソース（OSS）として公開するにあたり、AIツールとの協創プロセス、および現在の開発ステータスを開示します。コミュニティとのオープンな関係構築と不要なトラブルを避けるためのポリシーです。
+To foster trust in the open-source community, we believe in being **completely honest and transparent** about our development process, AI collaboration, and current codebase status.
 
-### 🚀 1. 開発背景と「Vibe Coding」の開示
-本プロジェクトは、AIツール（Antigravity - Gemini）をフル活用した**Vibe Coding**によって爆速でプロトタイプ構築されました。
-*   **AIとの共創**: 人間による設計指揮と、AIの高速なコーディングサポートを融合した開発体制を取っています。これに伴い、実装スピードが圧倒的である反面、一部リファクタリングが追いついていない箇所や、スパゲティ化している設計が残っています。「動作はするが、完璧に磨き上げられた美しい設計とは言えない」状態であることをご理解ください。
-*   **なぜオープンソースなのか？**: BYOK（Bring Your Own Key）および完全BYOアセットモデルを採用し、開発者のサーバー維持費用の破産リスクをゼロにしながら、世界中の人が安全かつ無料で「MRアバターアシスタント」の未来を体験できるようにするためです。
+### 🚀 1. Speed Development & "Vibe Coding"
+This project was rapidly prototyped and built using **Vibe Coding**—leveraging advanced AI tools (Antigravity - Gemini) for high-speed development.
+*   **AI Collaboration**: The architecture is a co-creation between human directive design and high-speed AI output. Consequently, while functionality was delivered incredibly fast, some parts of the codebase remain raw, unified in single files, and lack strict refactoring. It works wonderfully, but it is not a "highly polished" academic codebase.
+*   **Why Open Source?**: By adopting a Bring Your Own Key (BYOK) model, we keep host costs at zero while offering everyone free, transparent access to test the future of MR avatar-based AI interfaces.
 
-### 🔒 2. セキュリティとプライバシーの透明性 (最重要)
-ユーザーのプライバシーを最優先にしています。
-*   **データの行き先**: 入力されたGemini APIキーやドラッグ＆ドロップしたVRMファイルなどの個人資産が、外部のサードパーティや開発者の管理するサーバーに送信されることは**絶対にありません**。すべてブラウザのローカル環境（LocalStorage等）でのみ処理・保持されます。
-*   **通信の健全性**: 通信が発生するのは「Google AI StudioのAPIエンドポイント」および「ユーザー自身のPC上で動くローカルOllamaサーバー」のみであり、トラフィックは完全に透過的です。
+### 🔒 2. Privacy & Security Assurance
+Your privacy is our absolute priority.
+*   **Zero Server Transmission**: Your Gemini API key and uploaded VRM files are processed and stored **100% locally in your own browser** (via `localStorage` and memory arrays). They are **never** transmitted to any external server managed by developers or third parties.
+*   **Transparent Traffic**: Network traffic is strictly restricted to direct calls to the official "Google AI Studio API endpoints" and your own local loopback Ollama port (`127.0.0.1`).
 
-### 📋 3. 現在のコードの品質と「割り切り」の共有
-短期間で機能とグラフィック表現の両立を目指したため、以下の技術的負債（Known Debt）が存在します：
-*   **コンポーネント設計**: HUDのUI処理が単一ファイルに集中しており、将来的なモジュール分割の余白が多く残っています。
-*   **テストコード**: 現在、自動テスト（Unit Test / E2E Test）は未実装です。検証は実機およびブラウザでの手動確認を中心に行っています。
+### 📋 3. Code Quality & Known Technical Debt
+Because we prioritized building visual high-fidelity and real-time interaction speed, the following debt is openly shared:
+*   **Monolithic HUD Component**: Most of the HUD's UI state rendering is grouped in single-file scripts rather than decoupled UI modular templates, leaving high potential for modular refactoring.
+*   **No Automated Tests**: There are currently **no automated unit or E2E tests** configured. Validation is performed through rigorous manual device testing.
 
-### 🥽 4. 動作・検証環境のスコープ
-万能な動作を謳うのではなく、現時点で検証を行った限界を正直に開示します：
-*   **検証済みデバイス・ブラウザ**: **Meta Quest 3** の標準Questブラウザ（WebXR没入モード）、および **PC版 Google Chrome** での動作を中心に最適化しています。Apple Vision Proや他のHMD環境では、レイアウト崩れやコントローラーマッピングのズレが発生する可能性があります。
-*   **アバター仕様**: VRM 0.x および 1.0 規格に対応。ボーン構成や揺れものが過度に多いアバターの場合、特にモバイルVR環境（Quest単体など）において描画FPSが低下する可能性があります。
+### 🥽 4. Tested Environments & Limits
+Instead of claiming universal support, we share our explicit testing scopes:
+*   **Verified Environment**: Optimized specifically for **Meta Quest 3** (via standard Quest Browser WebXR immersive mode) and **PC Google Chrome**. Apple Vision Pro or other HMD devices may experience minor controller mapping offsets or styling misalignments.
+*   **VRM Avatar Limits**: Designed for standard VRM 0.x and 1.0 specifications. Avatars with exceptionally complex mesh groups or high counts of spring bone colliders may experience performance frame drops on standalone mobile VR chipsets (Quest native runtime).
 
-### 🤝 5. コントリビューション（開発参加）へのスタンス
-私たちは、荒削りな現在のコードベースを「コミュニティの皆様が参加しやすい伸び代」と捉えています。
-*   **大歓迎のPR**: コードベースの整理、他ブラウザや他HMDへの最適化、エラーハンドリングの強化など、どんなに小さなプルリクエストやバグ報告（Issue）でも大歓迎です！一緒に『アルファ』を洗練させていきましょう。
+### 🤝 5. Contributing
+We view our raw, unrefined codebase as an exciting "room to grow" for open-source contributors!
+*   **PRs are Highly Welcome**: We warmly welcome any pull requests focusing on codebase cleanup, optimizing cross-browser compatibility, expanding WebXR headset bindings, or adding strict error handling. Let's build the future of Alpha together!
 
 ---
 
-## 🚀 デプロイと技術スタック
+## 🚀 Deploy & Tech Stack
 
-本アプリは、ビルド後に純粋な静的ファイルのみで稼働するため、**Cloudflare Pages** や Netlify、Vercel 等に1ステップでデプロイ可能です。
+This project compiles down to completely serverless static files, making it deployable to **Cloudflare Pages**, Vercel, Netlify, or similar platforms in one step.
 
 *   **Core**: Vanilla HTML5, CSS3, ES6 JavaScript
 *   **3D Graphics**: Three.js, @pixiv/three-vrm (3D Avatar Engine)
 *   **AI Backend**: Google Gemini API (v1beta beta-tts), Ollama (Local LLM Core)
-*   **AR/VR**: WebXR Device API (Meta Quest 3で動作確認)
+*   **AR/VR**: WebXR Device API (Meta Quest 3 Verified)
