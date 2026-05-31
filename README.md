@@ -10,7 +10,7 @@ A 3D Augmented Reality simulator where you synchronize with "Alpha", an advanced
 
 🌐 **Online Live Demo:** [https://alpha-xr.org](https://alpha-xr.org)
 
-![Alpha Synapse Demo](https://github.com/ohban730/alpha-synapse/blob/main/assets/demo.mp4)
+![Alpha Synapse Demo](./assets/demo.mp4)
 
 ---
 
