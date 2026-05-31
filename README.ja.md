@@ -10,9 +10,7 @@
 
 🌐 **オンラインデモサイト：** [https://alpha-xr.org](https://alpha-xr.org)
 
-<p align="center">
-  <video src="https://github.com/ohban730/alpha-synapse/raw/main/assets/demo.mp4" width="100%" height="auto" controls autoplay loop muted></video>
-</p>
+![Alpha Synapse Demo](https://github.com/ohban730/alpha-synapse/blob/main/assets/demo.mp4)
 
 ---
 
