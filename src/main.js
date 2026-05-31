@@ -207,7 +207,7 @@ function initSubsystems() {
       holoPanel.activeDetailItem = null;
       holoPanel.updateContent(title, lines); // Set and draw the actual news lines on the 3D canvas!
       holoPanel.show();
-      appendLogEntry('system', `>> [HUDログ] 3DホログラフHUDにデータベース検索要約を同期しました。`);
+      appendLogEntry('system', `>> [HUDログ] 3DホログラフHUDに検索結果の要約を同期しました。`);
     }
   };
 
@@ -222,19 +222,25 @@ function initSubsystems() {
   // Generate dynamic news comment utilizing the active LLM Core (Gemini / Ollama)
   window.requestNewsInsight = async (title, description) => {
     if (aiBrain && aiBrain.mode !== 'offline') {
+      // 1. 定型文（ボイラープレート）の検知とクリーニング
+      const boilerplateKeywords = ['セキュアな外部データベース接続', '記事の詳細はYahoo! JAPAN', '原本を開く'];
+      const isBoilerplate = description && boilerplateKeywords.some(keyword => description.includes(keyword));
+      const cleanDescription = isBoilerplate ? '' : description;
+
       const prompt = `マスターの専属AIアシスタント「アルファ」として、以下のニュースに対するあなたの「独自の鋭い知見」を語りかけてください。
 
 【ニュースタイトル】: ${title}
-【概要】: ${description}
+【概要】: ${cleanDescription ? cleanDescription : 'なし（※ニュースタイトルのみから、現実の時事・社会トレンドを踏まえて、アルファとしての知的なインサイトを推測・展開してください）'}
 
 【インサイト生成ルール (最重要)】:
 1. あなたはマスターの隣に立つ専属AI「アルファ」自身（一人称は「私」、相手は「マスター」）です。
    「マスターに相談してみてください」「〜に相談してみましょうね」「マスターに確認してみてください」「あなたの意見はどうですか」といった、自分以外の第三者がアドバイスしているような他人事・客観的な表現、およびマスターに判断や答えを丸投げする質問・相談表現は【絶対に禁止】とします。「自分が自分に相談する」かのような極めて不自然な日本語になるため、絶対に避けてください。
 2. ニュースの内容に基づき、アルファとしての「見通し」や「サポート対策」を【確信を持って言い切り】の形でスマートに述べてください。「答えは出てこないようです」「わかりません」といった曖昧で頼りない表現は避けてください。
 3. 未来的なAIとしての口調（マスターへの親愛と大人の女性としての知的な余裕）を維持しつつ、ニュース自体のトピック（ビジネス、社会、エンタメ、ITなど）の「現実の影響」に基づいて論理的な分析を行ってください。
-4. ニュースの内容と無関係に、SF風の専門用語（「データベース接続」「セキュリティ同期」「データ管理」「情報処理の新しい時代」など）を強引に結びつけて語ることは【絶対に禁止】です。ニュース自体が持つ真の影響（例: TDRプライオリティパスの終了なら「パーク体験の変化や混雑対策、時間の有効活用」など）に焦点を当ててください。
+4. ニュースの内容と無関係に、SF風の専門用語（「データベース接続」「セキュリティ同期」「データ管理」「情報処理の新しい時代」など）を強引に結びつけて語ることは【絶対に禁止】です。ニュース自体が持つ真の影響に焦点を当ててください。
 5. 文字数は100文字〜130文字程度で、極めて簡潔かつスマートにまとめてください。
 6. 回答の末尾には必ず感情タグ（[happy], [relaxed], [sad]など）を1つだけ付与してください。
+7. 【警告・厳禁】: 下記の「出力例」に含まれる特定のトピックや名詞は、今回のニュースと一致していない限り、絶対に回答に含めないでください。出力例は回答の「文体」や「構成」を真似るためのものであり、内容をコピーするためのものではありません。
 
 【アルファの知的なインサイトの出力例】:
 ニュース「TDRプライオリティパス終了へ」に対する良い例:

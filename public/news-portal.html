@@ -488,7 +488,7 @@
   <div id="decrypter-modal" class="modal-overlay">
     <div class="decrypter-card">
       <div class="decrypter-header">
-        <span class="decrypter-tag">SYNAPSE DECRYPTER v4.2</span>
+        <span class="decrypter-tag">SYNAPSE DECRYPTER v1.0.0</span>
         <button id="modal-close-btn" class="decrypter-close">◀ 一覧に戻る</button>
       </div>
       
@@ -549,8 +549,8 @@
     let activeInsight = '';
 
     function generateContextualDescription(title) {
-      // Return honest cyberpunk source redirection notice, preventing fake news hallucination
-      return 'セキュアな外部データベース接続の同期に成功。Yahoo! JAPANのソースサーバーに保管されている記事原本ファイルへ、PCブラウザの「原本を開く」ボタンまたはVR詳細パネルより安全に直接アクセス可能です。';
+      // 誠実なソースリダイレクト案内を返し、誤解やハルシネーションを防ぐ
+      return '記事の詳細はYahoo! JAPANの掲載ページ（原本）にてご確認いただけます。PCブラウザの「原本を開く」ボタンまたはVR詳細パネルよりアクセス可能です。';
     }
 
     function appendTerminalLog(text, isSuccess = false) {
@@ -599,18 +599,18 @@
       }
 
       // Run sequential cyberpunk terminal animation
-      appendTerminalLog('COGNITIVE SYNC: INITIALIZING...', true);
+      appendTerminalLog('NEWS SYNC: INITIALIZING...', true);
       
       setTimeout(() => {
-        appendTerminalLog('YAHOO DATA ENCRYPTION DETECTED: BYPASSING CORS SEGMENT...', false);
+        appendTerminalLog('FETCHING YAHOO RSS FEED PORTAL...', false);
       }, 200);
 
       setTimeout(() => {
-        appendTerminalLog('DECRYPTING ARTICLE SYNOPSIS MATRIX...', false);
+        appendTerminalLog('PROCESSING ARTICLE DATA MATRIX...', false);
       }, 500);
 
       setTimeout(async () => {
-        appendTerminalLog('DECRYPTION COMPLETE: INJECTING ALPHA COGNITIVE INSIGHT...', true);
+        appendTerminalLog('SYNC COMPLETE: INJECTING ALPHA COGNITIVE INSIGHT...', true);
         
         // Fetch dynamic AI Insight
         let insight = '';

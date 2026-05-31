@@ -22,6 +22,41 @@ To maximize user privacy and keep the developer's server maintenance costs at ab
 
 ---
 
+## 🌌 Core Features & Experience Guide
+
+This simulator allows you to experience a highly immersive 3D personal AI companion inside a futuristic sci-fi tactical HUD interface. Here is an overview of the key features and how you can trigger/experience them:
+
+### 1. 3D Avatar Projection (VRM Avatar Projection)
+*   **What it does**: Materialize your favorite 3D character (VRM avatar) directly in the 3D space. The avatar performs natural breathing, idle gestures, and interactive eye-tracking that dynamically follows your mouse pointer or VR controller inputs.
+*   **How to try it**:
+    1. Simply drag and drop any `.vrm` file (VRM 0.x / 1.0 supported) from your computer directly onto the 3D viewport canvas.
+    2. Alternatively, open the "NEURAL LINK OPTIONS" panel on the right side of the screen and click the **"Load VRM File"** button to browse and upload it locally.
+
+### 2. AI Chat & Voice Interaction (Multimodal AI Link)
+*   **What it does**: Enjoy real-time smart text or voice dialogue with your companion "Alpha". The 3D VRM avatar dynamically changes her facial expressions (happy, sad, angry, surprised, relaxed) and body poses (e.g., thinking, joy, idle) in sync with her thoughts. When using Gemini API, she speaks her replies back to you in an elegant prebuilt AI voice (using native v1beta TTS).
+*   **How to try it**:
+    1. Ensure your API key (Gemini) or local LLM (Ollama) settings are synced.
+    2. **For Text Chat**: Type your message in the chat input bar at the bottom right and click the **"Send"** button.
+    3. **For Voice Interaction**: Click the **"NEURAL LINK (音声対話)"** button at the bottom, grant microphone access, and speak when it displays "どうぞお話しください" (Please speak). Once you stop speaking, the app automatically transcribes and sends your speech to Alpha.
+
+### 3. Curved Holographic Web Visor (Search & Yahoo News Portal)
+*   **What it does**: Dynamically summon a cyberpunk curved web browser (Web Visor) in front of you by talking to Alpha.
+    - **Yahoo! Japan News Portal**: Real-time Yahoo! topics RSS feed portal fetch and display.
+    - **Wikipedia Search**: CORS-Safe instant Wikipedia search integration. The search summary is dynamically transcribed onto the 3D Holographic Floating HUD Panel floating in the 3D canvas, giving you an immersive Iron-Man-like HUD experience.
+*   **How to try it**:
+    1. Chat or speak to Alpha: "**Show me the news**", "**Open Yahoo News**" or "**最新のニュースを教えて**" to trigger the news portal dashboard.
+    2. Ask to search: "**Search about Google**", "**Three.jsについて調べて**" or "**Look up space**".
+    3. The holographic browser visor will smoothly slide into view displaying the live topics feed or search database results.
+
+### 4. Terminal Decryption & AI Insights (AI Cognitive Insight & TTS Reader)
+*   **What it does**: Clicking a topic in the visor opens a terminal-style decryption overlay. Alpha will generate a live, logical, and companion-focused analysis/advice (AI Insight) for that news article. You can also click the TTS speak button to hear her read the analysis aloud using her native TTS voice.
+*   **How to try it**:
+    1. Open the Web Visor and click any news card or search result.
+    2. A cybernetic decoder terminal overlay will launch, compiling the article synopsis and generating the **"ALPHA AI INSIGHT"** card.
+    3. Click the **"🎙️ 音声読み上げ"** (Read Aloud) button to have Alpha explain her insight to you verbally with natural vocal synthesis.
+
+---
+
 ## 📋 Prerequisites
 
 To clone, build, and run this project on your machine, you must have the following installed:

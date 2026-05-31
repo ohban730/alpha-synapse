@@ -488,7 +488,7 @@ body, html {
   font-size: 13px;
   font-weight: bold;
   letter-spacing: 1px;
-  padding: 10px 15px;
+  padding: 12px 15px;
   border-radius: var(--border-radius);
   color: var(--color-cyan);
   cursor: pointer;
@@ -496,6 +496,10 @@ body, html {
   transition: all 0.3s ease;
   position: relative;
   overflow: hidden;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1.2;
 }
 
 .hud-btn::before {
