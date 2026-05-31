@@ -11,7 +11,7 @@
 🌐 **オンラインデモサイト：** [https://alpha-xr.org](https://alpha-xr.org)
 
 <p align="center">
-  <video src="./assets/demo.mp4" width="100%" height="auto" controls autoplay loop muted></video>
+  <video src="./src/assets/demo.mp4" width="100%" height="auto" controls autoplay loop muted></video>
 </p>
 
 ---
