@@ -10,8 +10,6 @@
 
 🌐 **オンラインデモサイト：** [https://alpha-xr.org](https://alpha-xr.org)
 
-![Alpha Synapse Demo](./assets/demo.mp4)
-
 ---
 
 ## 💎 完全BYO（Bring Your Own）モデル
