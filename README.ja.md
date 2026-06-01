@@ -5,6 +5,8 @@
 [![Demo Site](https://img.shields.io/badge/Demo_Site-alpha--xr.org-00f3ff.svg?style=flat-square)](https://alpha-xr.org)
 [![Cyberpunk Vibe](https://img.shields.io/badge/Theme-Cyberpunk_Visor-orange.svg?style=flat-square)](#)
 [![Tech Stack](https://img.shields.io/badge/Tech-Three.js_|_VRM_|_WebXR-00f3ff.svg?style=flat-square)](#)
+[![X (Twitter)](https://img.shields.io/badge/X-AlphaSynapseXR-black.svg?style=flat-square&logo=x)](https://x.com/AlphaSynapseXR)
+
 
 ユーザーの視界に高解像度投影される専属AIアシスタント『アルファ』と精神同期し、未来的なタクティカルAR-HUDを通じて音声やテキストで対話ができる、3D拡張現実シミュレーターです。
 

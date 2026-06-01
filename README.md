@@ -5,6 +5,8 @@
 [![Demo Site](https://img.shields.io/badge/Demo_Site-alpha--xr.org-00f3ff.svg?style=flat-square)](https://alpha-xr.org)
 [![Cyberpunk Vibe](https://img.shields.io/badge/Theme-Cyberpunk_Visor-orange.svg?style=flat-square)](#)
 [![Tech Stack](https://img.shields.io/badge/Tech-Three.js_|_VRM_|_WebXR-00f3ff.svg?style=flat-square)](#)
+[![X (Twitter)](https://img.shields.io/badge/X-AlphaSynapseXR-black.svg?style=flat-square&logo=x)](https://x.com/AlphaSynapseXR)
+
 
 A 3D Augmented Reality simulator where you synchronize with "Alpha", an advanced personal AI assistant projected into your field of view, and interact with her using voice or text through a futuristic tactical AR HUD.
 
