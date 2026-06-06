@@ -57,6 +57,12 @@ This simulator allows you to experience a highly immersive 3D personal AI compan
     2. A cybernetic decoder terminal overlay will launch, compiling the article synopsis and generating the **"ALPHA AI INSIGHT"** card.
     3. Click the **"🎙️ 音声読み上げ"** (Read Aloud) button to have Alpha explain her insight to you verbally with natural vocal synthesis.
 
+### 5. Autonomous Proactive Speech (Alpha Initiates Conversation)
+*   **What it does**: Alpha is not just reactive — she has her own initiative. When you fall idle, she will speak up on her own. Using the LLM at runtime, she generates unique and contextually-aware lines based on your idle time, teasing you or gently checking in.
+*   **How it works**:
+    - After **90 seconds of no interaction**, Alpha will autonomously generate a short, character-consistent speech line (via LLM or offline template fallback) and deliver it in a teasing `teasing` pose.
+    - The idle timer is automatically reset every time you send a message or speak, ensuring she never interrupts an active conversation.
+
 ---
 
 ## 📋 Prerequisites
@@ -172,12 +178,51 @@ ollama pull llama3.2
 
 ---
 
+## 🤖 Local AI Backend (Ollama + Style-Bert-VITS2)
+
+For a **fully local, fully private, zero-cost** experience with real-time streaming text and natural Japanese voice synthesis:
+
+> [!NOTE]
+> This mode requires running the Python backend server (`src/server.py`) locally alongside the Vite dev server.
+
+### Prerequisites
+- Python environment (recommend `conda` / `venv`) with the packages in `requirements.txt`
+- [Ollama](https://ollama.com/) running with your preferred model (e.g. `gemma2:9b`)
+- [Style-Bert-VITS2](https://github.com/litagin02/Style-Bert-VITS2) API server running on port `5000`
+
+### 1. Install Python Dependencies
+```bash
+pip install -r requirements.txt
+```
+
+### 2. Start the Local Backend Server
+```bash
+# From the project root
+python src/server.py
+# Server starts at http://localhost:8000
+```
+
+### 3. Configure the App
+1. Open `http://localhost:3000` (or `https://127.0.0.1:3000` if using HTTPS dev mode).
+2. Select **"Ollama (Local LLM)"** in the **INTELLIGENCE SYNC CORE** dropdown.
+3. Set the model name (e.g. `gemma2:9b`) and click **"Sync Neural Link"**.
+4. Alpha will now speak with **Style-Bert-VITS2** voice, streamed sentence-by-sentence in real time.
+
+### 💎 Key Advantages of Local Mode
+*   **100% Private**: No data ever leaves your machine.
+*   **Unlimited & Free**: No API quota, no costs.
+*   **Ultra-low latency**: First voice audio begins within ~1 second of response generation thanks to the SSE streaming pipeline.
+*   **Emotion-synced voice**: `[happy]`, `[sad]`, and other emotion tags in Alpha's replies are mapped to Style-Bert-VITS2 voice styles in real time.
+
+---
+
 ## ⚡ Troubleshooting (Ollama Connections)
 
 ### 🔴 "Failed to Fetch" Error during Chat
 1.  **Check if Ollama is running**: Visit `http://localhost:11434` in your browser. It should output `Ollama is running`.
 2.  **CORS Variable Missing**: Ensure `OLLAMA_ORIGINS` is configured correctly and the Ollama server has been *fully* restarted (not just minimized).
 3.  **HTTPS Mixed Content Restriction**: If you are accessing the app via the production HTTPS URL (`https://alpha-xr.org`), strict browsers (like Safari) will block fetches to `http://localhost`. Run the app locally over HTTP via `npm run dev` to bypass this.
+4.  **Backend not running**: If using Local LLM mode, ensure `python src/server.py` is also running on port `8000`.
 
 ---
 
@@ -217,5 +262,7 @@ This project compiles down to completely serverless static files, making it depl
 
 *   **Core**: Vanilla HTML5, CSS3, ES6 JavaScript
 *   **3D Graphics**: Three.js, @pixiv/three-vrm (3D Avatar Engine)
-*   **AI Backend**: Google Gemini API (v1beta beta-tts), Ollama (Local LLM Core)
+*   **AI Backend (Cloud)**: Google Gemini API (v1beta native TTS)
+*   **AI Backend (Local)**: Ollama LLM + Python FastAPI (`src/server.py`) SSE relay
+*   **Voice Synthesis (Local)**: Style-Bert-VITS2 (emotion-synced Japanese TTS)
 *   **AR/VR**: WebXR Device API (Meta Quest 3 Verified)

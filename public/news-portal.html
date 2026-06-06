@@ -664,6 +664,10 @@
 
     speakBtn.addEventListener('click', () => {
       if (activeItem && activeInsight) {
+        // Synchronously warm up the parent's audio element inside the click handler to satisfy autoplay requirements
+        if (window.parent && window.parent.voiceSystem && typeof window.parent.voiceSystem.warmUpAudio === 'function') {
+          window.parent.voiceSystem.warmUpAudio();
+        }
         if (window.parent && typeof window.parent.speakNews === 'function') {
           const cleanInsight = activeInsight.replace(/\[(happy|angry|sad|relaxed|surprised)\]/i, '').trim();
           const speakText = `マスター、選択されたニュース「${activeItem.title}」について、私の洞察をお伝えしますね。…… ${cleanInsight}`;

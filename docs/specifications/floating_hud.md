@@ -98,21 +98,22 @@
 
 ```mermaid
 flowchart TD
-    Start([描画更新ティック開始]) --> A[時間変数 time と前フレームからの差分 delta を計算]
-    A --> Scale[scale & opacity を target値 に向けて LERP 補間]
-    Scale --> Visible{scale > 0.01 か？}
+    Start(["描画更新ティック開始"]) --> A["時間変数 time と前フレームからの差分 delta を計算"]
+    A --> Scale["scale & opacity を target値 に向けて LERP 補間"]
+    Scale --> Visible{"scale > 0.01 か？"}
     
-    Visible -- No --> Hide[mesh.visible = false に設定して描画をスキップ] --> End([スキップ完了])
-    Visible -- Yes --> Show[mesh.visible = true に設定]
+    Visible -- No --> Hide["mesh.visible = false に設定して描画をスキップ"] --> End(["スキップ完了"])
+    Visible -- Yes --> Show["mesh.visible = true に設定"]
     
-    Show --> VR_Check{isVR === true (VRプレゼン中) か？}
-    VR_Check -- Yes --> Bob_Off[浮遊ボビング処理を無効化: bob = 0]
-    VR_Check -- No --> Bob_On[サイン/コサイン波による浮遊を加算: bob = Math.sin(time)*0.04]
+    Show --> VR_Check{"isVR === true（VRプレゼン中）か？"}
+    VR_Check -- Yes --> Bob_Off["浮遊ボビング処理を無効化：bob = 0"]
+    VR_Check -- No --> Bob_On["サイン・コサイン波による浮遊を加算：bob = Math.sin（time）＊ 0.04"]
     
-    Bob_Off & Bob_On --> Pos[mesh.position にアバター基準の offset と bob を適用]
+    Bob_Off --> Pos["mesh.position にアバター基準の offset と bob を適用"]
+    Bob_On --> Pos
     
-    Pos --> Cam[カメラのワールド空間位置 camPos を取得]
-    Cam --> Rotation[Y軸直立ビルボード: targetVector = camPos.x, mesh.y, camPos.z]
-    Rotation --> Look[mesh.lookAt(targetVector)]
+    Pos --> Cam["カメラのワールド空間位置 camPos を取得"]
+    Cam --> Rotation["Y軸直立ビルボード：targetVector = camPos.x, mesh.y, camPos.z"]
+    Rotation --> Look["mesh.lookAt（targetVector）"]
     Look --> End
 ```

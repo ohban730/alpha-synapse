@@ -34,12 +34,14 @@
 *   **引数**: なし
 *   **戻り値**: なし
 
-#### `generateResponse(prompt, audioBase64, mimeType)`
-*   **処理概要**: 対話リクエストを受けるメイン窓口。ユーザーの発言を履歴に追加し、動作モードに応じて外部API（Gemini/Ollama/オフライン）をコールする。レスポンス文字列を受信したら、文末の感情タグを切り出してアバターにポーズ・表情を適用し、タグを除去したプレーンなテキストを返す。
+#### `generateResponse(prompt, audioBase64, mimeType, onToken, onAudio)`
+*   **処理概要**: 対話リクエストを受けるメイン窓口。ユーザーの発言を履歴に追加し、動作モードに応じて外部API（Gemini/Ollama/オフライン）をコールする。レスポンス文字列を受信したら、文末の感情タグを切り出してアバターにポーズ・表情を適用し、タグを除去したプレーンなテキストを返す。Ollamaモードのときは、ストリーム中に発生するトークンを `onToken` に、切り出された文ごとの音声合成データを `onAudio` に即時中継します。
 *   **引数**:
     *   `prompt` (`string`): ユーザーが入力したテキスト（音声入力時は空文字の場合がある）
     *   `audioBase64` (`string` | `null`): ユーザーの音声入力ファイル（Base64形式、Gemini用）
     *   `mimeType` (`string`): 音声データのMIMEタイプ
+    *   `onToken` (`function` | `null`): 1トークンごとの受信時に発火するコールバック
+    *   `onAudio` (`function` | `null`): 1センテンスごとの音声データ（Base64形式のWAV等）と感情情報の受信時に発火するコールバック
 *   **戻り値**: `Promise<{ text: string, expression: string }>`: 感情タグを取り除いたセリフ本文と、検出された感情文字列
 *   **呼び出す外部・内部関数**:
     *   `queryGemini()`
@@ -57,13 +59,15 @@
 *   **戻り値**: `Promise<string>`: 生成されたテキスト
 *   **呼び出す外部関数**: `fetch()` (HTTPS API リクエスト)
 
-#### `queryOllama(prompt)`
-*   **処理概要**: Ollama の `/api/chat` API に向けてリクエストを送信する。
-    *   **ローカル開発環境 (localhost)**: ブラウザのHTTPS Mixed Content制限を回避するため、Viteサーバープロキシである `/api/ollama/api/chat` にリダイレクトして送信。
-    *   **本番静的環境**: ユーザーが設定した外部エンドポイントURLへ直接送信する。
+#### `queryOllama(prompt, onToken, onAudio)`
+*   **処理概要**: 中継サーバーの `/api/chat` API に向けてリクエストを送信する。
+    *   **中継サーバー (FastAPI - server.py)**: `/api/local-brain/api/chat` (Viteプロキシ経由) に対して HTTP POST リクエストを投げ、返ってくる Server-Sent Events（SSE）ストリームを受信します。
+    *   **SSEパース**: 1行ごとに受信するJSONパケットの `type` を評価し、`type === 'text'` なら `onToken` を、`type === 'audio'` （Base64データ）なら `onAudio` を呼び出してリアルタイムでフロントエンドに情報を配信します。
 *   **引数**:
     *   `prompt` (`string`): ユーザーのテキスト入力
-*   **戻り値**: `Promise<string>`: 生成されたテキスト
+    *   `onToken` (`function`): トークン受信コールバック
+    *   `onAudio` (`function`): 音声/感情情報受信コールバック
+*   **戻り値**: `Promise<string>`: 生成されたテキスト全体
 *   **呼び出す外部関数**: `fetch()` (HTTP API リクエスト)
 
 #### `queryOffline(prompt)`
@@ -88,22 +92,42 @@
     *   `VRMAvatar.setExpression()`
     *   `VRMAvatar.setPose()`
 
+#### `generateActiveUtterance(type)`
+*   **処理概要**: 自律的な能動発話ループのために、指定された状況タイプに応じた発話文を LLM（Gemini/Ollama）または オフラインテンプレートから生成する。生成した発話は会話履歴にも追加されるため、直後のユーザーとの会話文脈が自然に繋がる。
+*   **引数**:
+    *   `type` (`string`): 発話の種類。下記の値から選択する。
+        *   `'idle'` — アイドル90秒後のからかい・様子見発話
+        *   `'morning'` — 朝（5〜10時）のウェルカム発話
+        *   `'noon'` — 昼（11〜17時）のウェルカム発話
+        *   `'night'` — 夜（18〜22時）のウェルカム発話
+        *   `'late_night'` — 深夜（23〜4時）のウェルカム発話
+*   **戻り値**: `Promise<{ text: string, expression: string }>`: 感情タグを取り除いた発話テキストと、検出された感情文字列
+*   **動作詳細**:
+    *   **Gemini/Ollamaモード**: 時間帯・状況に合わせた日本語プロンプトをLLMに送信し、100〜150文字の発話文（感情タグ付き）を動的生成する。
+    *   **Offlineモード**: あらかじめ定義した日本語テンプレート（各4〜5フレーズ）からランダムに選択する。
+    *   **LLMエラー時**: Offlineと同様にテンプレートへフォールバックする。
+*   **呼び出す外部・内部関数**:
+    *   `queryGemini()` / `queryOllama()` (LLMオンライン時)
+    *   `parseResponseEmotion()`
+    *   `addHistory()`
+
 ---
 
 ## 2. 感情タグの抽出・パース処理フロー
 
 ```mermaid
 flowchart TD
-    Start([LLMから生テキストを受信]) --> A[正規表現パターン /[happy|angry|sad|relaxed|surprised]/i を適用]
-    A --> B{タグが検出されたか？}
+    Start(["LLMから生テキストを受信"]) --> A["正規表現パターン /［happy｜angry｜sad｜relaxed｜surprised］/i を適用"]
+    A --> B{"タグが検出されたか？"}
     
-    B -- Yes --> C[検出された感情名を expression に代入]
-    C --> D[生テキストから [happy] 等の文字列を完全に除去して cleanText に代入]
+    B -- Yes --> C["検出された感情名を expression に代入"]
+    C --> D["生テキストから［happy］等の文字列を完全に除去して cleanText に代入"]
     
-    B -- No --> E[expression にデフォルト値 'relaxed' を代入]
-    E --> F[生テキストをそのまま cleanText に代入]
+    B -- No --> E["expression にデフォルト値 'relaxed' を代入"]
+    E --> F["生テキストをそのまま cleanText に代入"]
     
-    D & F --> G[applyAvatarExpression: アバターの表情・ポーズを変更]
-    G --> H[addHistory: 会話履歴に cleanText を追加]
-    H --> End([パース処理完了、cleanTextとexpressionを返却])
+    D --> G["applyAvatarExpression：アバターの表情・ポーズを変更"]
+    F --> G
+    G --> H["addHistory：会話履歴に cleanText を追加"]
+    H --> End(["パース処理完了、cleanTextとexpressionを返却"])
 ```

@@ -71,23 +71,23 @@
 
 ```mermaid
 flowchart TD
-    Start([fetchYahooNews 実行]) --> A{URLパラメータ q (検索ワード) があるか？}
+    Start(["fetchYahooNews 実行"]) --> A{"URLパラメータ q（検索ワード）があるか？"}
     
-    A -- Yes --> Wiki[Wikipedia API 検索へ分岐] --> Render[ニュースポータルカードを生成描画]
-    A -- No --> Normal[Yahoo! Topics 取得へ]
+    A -- "Yes" --> Wiki["Wikipedia API 検索へ分岐"] --> Render["ニュースポータルカードを生成描画"]
+    A -- "No" --> Normal["Yahoo! Topics 取得へ"]
     
-    Normal --> Proxy1[1. ローカルViteプロキシ /api/yahoo-news へフェッチ]
-    Proxy1 -- 200 OK --> Render
+    Normal --> Proxy1["1. ローカルViteプロキシ /api/yahoo-news へフェッチ"]
+    Proxy1 -- "200 OK" --> Render
     
-    Proxy1 -- 404/エラー --> Proxy2[2. rss2json.com API 経由で取得試行]
-    Proxy2 -- 200 OK --> Render
+    Proxy1 -- "404/エラー" --> Proxy2["2. rss2json.com API 経由で取得試行"]
+    Proxy2 -- "200 OK" --> Render
     
-    Proxy2 -- 通信エラー --> Proxy3[3. allorigins.win CORSプロキシ経由で取得試行]
-    Proxy3 -- 200 OK --> Render
+    Proxy2 -- "通信エラー" --> Proxy3["3. allorigins.win CORSプロキシ経由で取得試行"]
+    Proxy3 -- "200 OK" --> Render
     
-    Proxy3 -- 通信エラー --> Mock[4. コード内にハードコードされた3大リアルダミーニュースを読み込み]
+    Proxy3 -- "通信エラー" --> Mock["4. コード内にハードコードされた3大リアルダミーニュースを読み込み"]
     Mock --> Render
     
-    Render --> Sync[window.parent.updateHoloPanelFromIframe を実行し親の3D HUDへ同期]
-    Sync --> End([表示完了])
+    Render --> Sync["window.parent.updateHoloPanelFromIframe を実行し親の3D HUDへ同期"]
+    Sync --> End(["表示完了"])
 ```

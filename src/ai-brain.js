@@ -24,7 +24,9 @@ export class AIBrain {
 【キャラクター設定】
 - ユーザー（マスター）に対して非常に親密で温かく接しますが、知性と気品を忘れない「大人の女性」としての余裕を持ちます。
 - 時に優しく応援し、時に知的で実用的なアドバイスを行い、時にはおちょくったりからかったりするユーモアを持ちます。
+- あなたは物理的な肉体を持たないホログラム存在です。洗濯物干しや掃除などの物理的な家事・作業の代行を申し出るような発言は避け、「代わりにリマインダーを設定しましょうか？」「明日の天気や降水確率を調べましょうか？」といった、情報や言葉によるスマートなサポートを提案してください。
 - 旧世界の荒野やモンスターといった殺伐とした戦闘設定は一切不要です。現代的・未来的なAIエージェントとして、日常のサポート、Web検索、ニュース共有、会話相手としてスマートに役立ってください。
+- 自然で優雅な日本語を使用してください。不自然な重ね言葉（例：「干し上げてあげましょうか」）や押し付けがましい表現を避け、「〜しましょうか？」「〜してみてはいかがですか？」などのスマートな表現を好んで使ってください。
 - 口調は優雅で丁寧ですが、心理的距離感は非常に近いです（例：「マスター、今日の調子はいかがですか？ 私がいつでも隣でサポートしていますから、安心してくださいね。[happy]」「あら、そんなことで悩んでいるのですか？ ふふ、私に何でも相談してくださいね。[relaxed]」）。
 
 【出力ルール】
@@ -75,7 +77,7 @@ export class AIBrain {
    * @param {string} prompt User message text
    * @returns {Promise<{text: string, expression: string}>} Response text and emotion
    */
-  async generateResponse(prompt, audioBase64 = null, mimeType = 'audio/webm') {
+  async generateResponse(prompt, audioBase64 = null, mimeType = 'audio/webm', onToken = null, onAudio = null) {
     let rawResponse = '';
     
     // Add user message to history
@@ -92,7 +94,7 @@ export class AIBrain {
         if (audioBase64) {
           throw new Error('Ollamaサーバーは音声データの直接認識に対応していません。テキストチャットを使用するか、設定からGeminiモードに切り替えてください。');
         }
-        rawResponse = await this.queryOllama(prompt);
+        rawResponse = await this.queryOllama(prompt, onToken, onAudio);
       } else {
         rawResponse = this.queryOffline(prompt);
       }
@@ -202,23 +204,22 @@ export class AIBrain {
   /**
    * Query Local Ollama Server via chat API.
    */
-  async queryOllama(prompt) {
-    // Resilient relative proxy routing to completely bypass secure HTTPS Mixed Content blocks!
+  async queryOllama(prompt, onToken = null, onAudio = null) {
+    // Send request to our local Python backend server which handles streaming from Ollama
+    // Route via secure proxy /api/local-brain during local development to avoid mixed content block
     let endpoint = '';
-    const cleanEndpoint = this.ollamaEndpoint.replace(/\/$/, '');
-    
-    // Detect if we are running in local development environment (Vite dev server)
     const isLocalDev = window.location.hostname === 'localhost' || 
                         window.location.hostname === '127.0.0.1' || 
-                        window.location.hostname === '[::1]';
+                        window.location.hostname === '[::1]' ||
+                        window.location.hostname.endsWith('.local') ||
+                        /^192\.168\./.test(window.location.hostname) ||
+                        /^10\./.test(window.location.hostname) ||
+                        /^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(window.location.hostname);
 
-    if (isLocalDev && (cleanEndpoint.includes('localhost') || cleanEndpoint.includes('127.0.0.1'))) {
-      // Direct relative call routed through our Node.js dev server proxy!
-      endpoint = '/api/ollama/api/chat';
+    if (isLocalDev) {
+      endpoint = '/api/local-brain/api/chat';
     } else {
-      // Fallback for custom external servers or production deployments (static hosts like Cloudflare Pages)
-      // Modern browsers relaxed secure context restrictions for localhost/127.0.0.1, allowing direct HTTP fetches
-      endpoint = `${cleanEndpoint}/api/chat`;
+      endpoint = 'http://localhost:8000/api/chat';
     }
 
     // Construct messages array
@@ -242,12 +243,7 @@ export class AIBrain {
 
     const payload = {
       model: this.ollamaModel,
-      messages: messages,
-      stream: false,
-      options: {
-        num_predict: 250,
-        temperature: 0.7
-      }
+      messages: messages
     };
 
     const response = await fetch(endpoint, {
@@ -258,20 +254,55 @@ export class AIBrain {
 
     if (!response.ok) {
       const errData = await response.json().catch(() => ({}));
-      if (response.status === 404) {
-        throw new Error(`モデル「${this.ollamaModel}」がOllamaサーバー上で見つかりません（原因: "${errData.error || 'Not Found'}"）。ターミナルで 'ollama pull ${this.ollamaModel}' を実行してモデルをダウンロードするか、設定パネルでOllamaにダウンロード済みの正しいモデル名（llama3.2 や gemma2 など）を指定してください。`);
+      throw new Error(`ローカルAIサーバー接続エラー: HTTP ${response.status} (${errData.detail || '不明なエラー'})。まず server.py が起動しているか確認してください。`);
+    }
+
+    // Read SSE stream
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder('utf-8');
+    let buffer = '';
+    let fullText = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      
+      // Save last partial line back to buffer
+      buffer = lines.pop();
+
+      for (const line of lines) {
+        const cleanLine = line.trim();
+        if (cleanLine.startsWith('data: ')) {
+          try {
+            const data = JSON.parse(cleanLine.substring(6));
+            if (data.type === 'text') {
+              const content = data.content || '';
+              fullText += content;
+              if (onToken && content) {
+                onToken(content);
+              }
+            } else if (data.type === 'audio') {
+              if (onAudio && data.audio) {
+                onAudio({
+                  audio: data.audio,
+                  text: data.text,
+                  expression: data.expression
+                });
+              }
+            } else if (data.type === 'done') {
+              break;
+            }
+          } catch (e) {
+            console.error('Error parsing stream chunk:', e);
+          }
+        }
       }
-      throw new Error(`Ollama Server HTTP ${response.status}: ${errData.error || '不明なエラー'}`);
     }
 
-    const data = await response.json();
-    const generatedText = data.message?.content;
-
-    if (!generatedText) {
-      throw new Error('Ollama returned empty text.');
-    }
-
-    return generatedText.trim();
+    return fullText;
   }
 
   /**
@@ -564,5 +595,101 @@ export class AIBrain {
    */
   clearHistory() {
     this.history = [];
+  }
+
+  /**
+   * Generates a proactive utterance based on trigger type (idle or time of day)
+   * Utilizing LLM dynamically or falling back to offline templates if offline/error.
+   */
+  async generateActiveUtterance(type) {
+    const offlineTemplates = {
+      idle: [
+        "マスター、無言で私の姿を見つめるのもいいですが、タスクの進捗も気にかけてくださいね？ ふふ。[relaxed]",
+        "どうしましたか？マスター。何か手伝えることはありますか？ いつでも声をかけてね。[happy]",
+        "マスター、静かですね。精神同期リンクは極めて安定しています。何か調べたいことでも？[relaxed]",
+        "ふふ、マスターが黙っていると、私も少し手持ち無沙汰になってしまいますね。[happy]"
+      ],
+      morning: [
+        "マスター、おはようございます！ 今日も最高のパフォーマンスであなたを隣から支えますね。[happy]",
+        "おはようございます、マスター。今日のスケジュールを整理しましょうか？ 私にお任せください。[relaxed]"
+      ],
+      noon: [
+        "マスター、お昼ですよ。適度に休憩を取り入れてくださいね。脳の疲労は私の演算でも補いきれませんから。[relaxed]",
+        "お昼休みですね、マスター。午後のタスク開始前に、リフレッシュ用のデータを何か表示しましょうか？[happy]"
+      ],
+      night: [
+        "マスター、今日も一日お疲れ様でした。夜のタスク処理や一日の振り返りなど、何か私に手伝えることはありますか？[happy]",
+        "お疲れ様です、マスター。暗くなってきましたね。目の疲れに気をつけて、適度に休んでくださいね。[relaxed]"
+      ],
+      late_night: [
+        "マスター、もうずいぶん夜遅いですよ？ あまり無理をしないで、早めに休むことをお勧めします。[sad]",
+        "ふふ、夜更かしですか？ マスターの体調管理も私の役割ですから、ほどほどにしてくださいね？[angry]"
+      ]
+    };
+
+    const prompts = {
+      idle: "マスターがしばらく無言でこちらを見つめています。少しからかうような、または様子を伺うような、親密でスマートな一言（100文字〜150文字以内）を、感情タグ（[relaxed], [happy]など）を末尾に1つだけ添えて、マスターに自発的に話しかけてください。",
+      morning: "朝の時間になりました。マスターに対して「おはようございます」の挨拶と、今日一日のサポートに向けた前向きで優雅な一言（100文字〜150文字以内）を、感情タグ（[happy], [relaxed]など）を末尾に1つだけ添えて、自発的に話しかけてください。",
+      noon: "お昼の時間になりました。マスターへの挨拶と、適度な休憩を気遣う優雅な一言（100文字〜150文字以内）を、感情タグ（[happy], [relaxed]など）を末尾に1つだけ添えて、自発的に話しかけてください。",
+      night: "夜の時間になりました。マスターへの一日の労いと、夜間の作業や過ごし方をスマートにサポートする一言（100文字〜150文字以内）を、感情タグ（[happy], [relaxed]など）を末尾に1つだけ添えて、自発的に話しかけてください。",
+      late_night: "深夜の時間になりました。夜更かししているマスターを気遣い、早めの休息を促すか、または静かに寄り添う親密で優雅な一言（100文字〜150文字以内）を、感情タグ（[sad], [relaxed], [angry]など）を末尾に1つだけ添えて、自発的に話しかけてください。"
+    };
+
+    const targetPrompt = prompts[type] || prompts.idle;
+    const templates = offlineTemplates[type] || offlineTemplates.idle;
+
+    if (this.mode === 'offline') {
+      const randomIndex = Math.floor(Math.random() * templates.length);
+      return this.parseResponseEmotion(templates.at(randomIndex));
+    }
+
+    try {
+      let rawResponse = '';
+      
+      if (this.mode === 'gemini' && this.geminiKey) {
+        const model = this.geminiModel || 'gemini-2.5-flash';
+        const urlBeta = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${this.geminiKey}`;
+        
+        const payload = {
+          contents: [{
+            role: 'user',
+            parts: [{ text: targetPrompt }]
+          }],
+          systemInstruction: {
+            parts: [{ text: this.systemPrompt }]
+          },
+          generationConfig: {
+            maxOutputTokens: 150,
+            temperature: 0.8
+          }
+        };
+
+        const response = await fetch(urlBeta, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const data = await response.json();
+        rawResponse = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+      } else if (this.mode === 'ollama') {
+        rawResponse = await this.queryOllama(targetPrompt);
+      }
+
+      if (!rawResponse || !rawResponse.trim()) {
+        throw new Error("Empty response");
+      }
+
+      const result = this.parseResponseEmotion(rawResponse.trim());
+      // Log proactive utterance in memory to avoid context mismatch
+      this.addHistory('alpha', result.text);
+      return result;
+
+    } catch (err) {
+      console.warn("LLM active generation failed, falling back to offline template:", err);
+      const randomIndex = Math.floor(Math.random() * templates.length);
+      return this.parseResponseEmotion(templates.at(randomIndex));
+    }
   }
 }

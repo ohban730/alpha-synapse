@@ -17,13 +17,53 @@ npm install
 - **何をしているのか？**: カタログファイルである `package.json` を Node.js（npm）が読み込み、3Dアバターを描画するための Three.js や、Vite 開発ツールなどをインターネットからダウンロードして、`node_modules` というフォルダに自動保存します。
 
 ### 2. ローカル開発サーバーの起動
-インストールが完了したら、以下のコマンドを実行します。
+Vite（フロントエンド）の開発サーバーを起動します。プロジェクトのルートで以下のコマンドを実行します。
 
 ```bash
 npm run dev
 ```
 - **何をしているのか？**: Vite があなたのパソコンの中に一時的な「ローカルWebサーバー」を立ち上げます。
-- 起動すると、ターミナルに `http://localhost:3000` のようなアドレスが表示され、ブラウザが自動的に起動してアプリの画面が開きます。
+- 起動すると、ターミナルに `https://localhost:3000` のようなアドレスが表示され、ブラウザが自動的に起動してアプリの画面が開きます。
+
+### 3. FastAPI バックエンドサーバーの起動
+Ollamaから流れるトークンを文に切り分け、音声合成（Style-Bert-VITS2）と非同期で連携させるための中継バックエンドサーバーを起動します。
+
+1. **conda 仮想環境をアクティベート**:
+   ```powershell
+   conda activate alpha-brain
+   ```
+2. **サーバーの起動（プロジェクトルートで実行）**:
+   ```powershell
+   uvicorn src.server:app --host 127.0.0.1 --port 8000
+   ```
+   - **何をしているのか？**: ポート `8000` で FastAPI サーバーが起動し、ブラウザのフロントエンドと Ollama / Style-Bert-VITS2 の間を安全に中継します（Viteのプロキシ `/api/local-brain` を通してブラウザと接続されます）。
+
+### 4. Style-Bert-VITS2 音声合成サーバーの起動
+超高品質なローカル音声合成（TTS）を極小レイテンシで実行するための API サーバーを起動します。
+
+1. **Style-Bert-VITS2 ディレクトリに移動**:
+   ```powershell
+   cd C:\Users\owner\Documents\sbv2\Style-Bert-VITS2
+   ```
+2. **venv 仮想環境をアクティベート**:
+   ```powershell
+   # PowerShell の場合
+   venv\Scripts\Activate.ps1
+
+   # コマンドプロンプト（cmd）の場合
+   venv\Scripts\activate.bat
+   ```
+   - アクティベートに成功すると、プロンプトの先頭に `(venv)` と表示される。
+   - ※ アクティベートせず直接 `venv\Scripts\python.exe` を指定して実行することも可能（下記コマンド参照）。
+3. **サーバーの起動**:
+   ```powershell
+   # venvをアクティベートした場合
+   python server_fastapi.py
+
+   # venvをアクティベートせずに直接実行する場合
+   venv\Scripts\python.exe server_fastapi.py
+   ```
+   - **何をしているのか？**: ポート `5000` で FastAPI ベースの TTS サーバーが起動し、`model_assets\` 内の日本語音声モデルをロードして待機します。
 
 ---
 

@@ -19,13 +19,15 @@
 | `mediaRecorder` | `MediaRecorder` | Web Speech APIの音声認識がサポートされていない環境（Quest内ブラウザ等）でマイク録音を行うためのオブジェクト。 |
 | `isListening` | `boolean` | 現在ブラウザ標準の音声認識（STT）が動作中かどうかのフラグ。 |
 | `isSpeaking` | `boolean` | 現在音声合成（TTS）が再生中かどうかのフラグ。 |
+| `audioQueue` | `array` | Ollamaモードで順次受信するBase64形式の音声・テキスト・感情情報を蓄積する再生キュー。 |
+| `isPlayingQueue` | `boolean` | キュー再生ループが現在動作中であるかを示すフラグ。 |
 
 ---
 
 ### 1.2 主要メソッド
 
 #### `initSynthesis()`
-*   **処理概要**: 音声合成オプションの初期設定を行う。Geminiの内蔵ボイス（Leda, Aoede等）のメタデータ定義と、クラウド音声定義を作成し、ブラウザ標準の `speechSynthesis.getVoices()` から取得したネイティブ音声と統合してボイスリストを生成する。LocalStorage から保存済みの音声名を復元する。
+*   **処理概要**: 音声合成オプションの初期設定を行う。ローカルの `Style-Bert-VITS2 (ローカル音声 - 推奨)`、Geminiの内蔵ボイス（Leda, Aoede等）、およびクラウド音声定義を作成し、ブラウザ標準の `speechSynthesis.getVoices()` から取得したネイティブ音声と統合してボイスリストを生成する。LocalStorage から保存済みの音声名を復元する。
 *   **引数**: なし
 *   **戻り値**: なし
 *   **呼び出す外部関数**: `synth.getVoices()`, `onVoicesLoaded` (メインUIの更新用コールバック)
@@ -72,10 +74,32 @@
 *   **戻り値**: なし
 
 #### `stopSpeaking()`
-*   **処理概要**: アクターの発話を強制停止する。SpeechSynthesisのキャンセル、fallbackAudioの停止およびリソース解放を行い、リップシンクタイマーとイコライザーアニメーションを停止する。
+*   **処理概要**: アクターの発話を強制停止する。再生キューのクリア（`audioQueue = []`, `isPlayingQueue = false`）を実行し、SpeechSynthesisのキャンセル、`fallbackAudio` の一時停止・リソース解放・全リスナー（`onerror`, `onplay`, `onended`）の解除を行い、リップシンクタイマーとイコライザーアニメーションを停止する。
 *   **引数**: なし
 *   **戻り値**: なし
 *   **呼び出す内部関数**: `cleanupSpeechState()`
+
+#### `enqueueAudio(base64Audio, cleanText, expression)`
+*   **処理概要**: 音声合成データ（Base64形式のWAVデータ、セリフ、感情）を再生キューにプッシュして追加します。現在キューの自動再生が走っていなければ `playNextInQueue()` を呼び出して再生を開始します。
+*   **引数**:
+    *   `base64Audio` (`string`): Base64エンコードされたWAV音声データ
+    *   `cleanText` (`string`): 読み上げ対象のクリーンなテキスト（リップシンク用）
+    *   `expression` (`string`): 表情（感情）の名前
+*   **戻り値**: なし
+*   **呼び出す内部関数**: `playNextInQueue()`
+
+#### `playNextInQueue()`
+*   **処理概要**: `audioQueue` から先頭の項目を pop して非同期で再生します。
+    1. キューが空になったら `isPlayingQueue = false` をセットして `cleanupSpeechState` を呼び出し、終了します。
+    2. 取り出した音声バイナリを Blob に変換して Blob URL を作成し、`fallbackAudio.src` に割り当てて再生を開始します。
+    3. 再生開始に合わせて `AIBrain.applyAvatarExpression()` を呼び出しアバターの表情を更新し、再生時間中に日本語の音節に同期したリップシンクを行います。
+    4. 再生終了時（`onended`）や再生エラー時に、WAVの Blob URL を解放（`revokeObjectURL`）した上で、再帰的に自身（`playNextInQueue`）をコールして次のキュー項目を処理します。
+*   **引数**: なし
+*   **戻り値**: なし
+*   **呼び出す外部・内部関数**:
+    *   `AIBrain.applyAvatarExpression()`
+    *   `startLipSyncLoop()`
+    *   `playNextInQueue()` (再帰的コール)
 
 #### `startLipSyncLoop(text)`
 *   **処理概要**: 簡易的な日本語母音の解析ループ。テキストを先頭から1文字ずつスキャンし、母音「あ・い・う・え・お」を判定して `VRMAvatar.setViseme()` を呼び出す。発話中、約 130ms ごとに非同期ループ処理として実行される。

@@ -22,3 +22,11 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Local development logs and plans
+docs/development_log.md
+
+# Python bytecode cache
+src/__pycache__/
+__pycache__/
+*.py[cod]

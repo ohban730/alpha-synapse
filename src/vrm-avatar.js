@@ -5,8 +5,8 @@ import { VRMLoaderPlugin } from '@pixiv/three-vrm';
 // Joint pose configurations for various conversational emotions
 const POSES = {
   idle: {
-    leftUpperArm: { x: 0.1, y: 0.0, z: -1.35 },
-    rightUpperArm: { x: 0.1, y: 0.0, z: 1.35 },
+    leftUpperArm: { x: -0.1, y: 0.0, z: -1.35 },
+    rightUpperArm: { x: -0.1, y: 0.0, z: 1.35 },
     leftLowerArm: { x: 0.25, y: 0.1, z: 0.0 },
     rightLowerArm: { x: 0.25, y: -0.1, z: 0.0 },
     leftHand: { x: 0.0, y: 0.0, z: 0.0 },
@@ -14,8 +14,8 @@ const POSES = {
     spine: { x: 0.0, y: 0.0, z: 0.0 }
   },
   happy: {
-    leftUpperArm: { x: 0.3, y: 0.15, z: -1.25 },
-    rightUpperArm: { x: 0.3, y: -0.15, z: 1.25 },
+    leftUpperArm: { x: -0.3, y: 0.15, z: -1.25 },
+    rightUpperArm: { x: -0.3, y: -0.15, z: 1.25 },
     leftLowerArm: { x: 0.9, y: 0.4, z: 0.0 },
     rightLowerArm: { x: 0.9, y: -0.4, z: 0.0 },
     leftHand: { x: 0.1, y: 0.0, z: 0.0 },
@@ -23,8 +23,8 @@ const POSES = {
     spine: { x: -0.05, y: 0.0, z: 0.0 }
   },
   angry: {
-    leftUpperArm: { x: 0.25, y: 0.2, z: -1.15 },
-    rightUpperArm: { x: 0.25, y: -0.2, z: 1.15 },
+    leftUpperArm: { x: -0.25, y: 0.2, z: -1.15 },
+    rightUpperArm: { x: -0.25, y: -0.2, z: 1.15 },
     leftLowerArm: { x: 1.2, y: 0.6, z: 0.2 },
     rightLowerArm: { x: 1.2, y: -0.6, z: -0.2 },
     leftHand: { x: 0.0, y: 0.0, z: 0.0 },
@@ -32,8 +32,8 @@ const POSES = {
     spine: { x: 0.05, y: 0.0, z: 0.0 }
   },
   sad: {
-    leftUpperArm: { x: 0.1, y: 0.1, z: -1.38 },
-    rightUpperArm: { x: 0.1, y: -0.1, z: 1.38 },
+    leftUpperArm: { x: -0.1, y: 0.1, z: -1.38 },
+    rightUpperArm: { x: -0.1, y: -0.1, z: 1.38 },
     leftLowerArm: { x: 0.3, y: 0.2, z: 0.1 },
     rightLowerArm: { x: 0.3, y: -0.2, z: -0.1 },
     leftHand: { x: 0.0, y: 0.0, z: 0.0 },
@@ -41,8 +41,8 @@ const POSES = {
     spine: { x: 0.08, y: 0.0, z: 0.0 }
   },
   relaxed: {
-    leftUpperArm: { x: 0.15, y: -0.1, z: -1.32 },
-    rightUpperArm: { x: 0.2, y: -0.2, z: 1.22 },
+    leftUpperArm: { x: -0.15, y: -0.1, z: -1.32 },
+    rightUpperArm: { x: -0.2, y: -0.2, z: 1.22 },
     leftLowerArm: { x: 0.3, y: 0.1, z: 0.0 },
     rightLowerArm: { x: 0.75, y: -0.4, z: 0.2 },
     leftHand: { x: 0.0, y: 0.0, z: 0.0 },
@@ -50,8 +50,8 @@ const POSES = {
     spine: { x: 0.02, y: 0.05, z: -0.02 }
   },
   surprised: {
-    leftUpperArm: { x: 0.4, y: 0.1, z: -1.18 },
-    rightUpperArm: { x: 0.4, y: -0.1, z: 1.18 },
+    leftUpperArm: { x: -0.4, y: 0.1, z: -1.18 },
+    rightUpperArm: { x: -0.4, y: -0.1, z: 1.18 },
     leftLowerArm: { x: 0.8, y: 0.2, z: 0.1 },
     rightLowerArm: { x: 0.8, y: -0.2, z: -0.1 },
     leftHand: { x: 0.2, y: 0.0, z: 0.0 },
@@ -59,13 +59,31 @@ const POSES = {
     spine: { x: 0.05, y: 0.0, z: 0.0 }
   },
   thinking: {
-    leftUpperArm: { x: 0.1, y: 0.0, z: -1.35 },
-    rightUpperArm: { x: 0.45, y: -0.2, z: 1.2 },
+    leftUpperArm: { x: -0.1, y: 0.0, z: -1.35 },
+    rightUpperArm: { x: -0.45, y: -0.2, z: 1.2 },
     leftLowerArm: { x: 0.25, y: 0.1, z: 0.0 },
     rightLowerArm: { x: 1.25, y: -0.4, z: 0.25 },
     leftHand: { x: 0.0, y: 0.0, z: 0.0 },
     rightHand: { x: 0.1, y: -0.1, z: 0.0 },
     spine: { x: 0.04, y: 0.02, z: -0.01 }
+  },
+  teasing: {
+    leftUpperArm: { x: -0.15, y: -0.1, z: -1.32 },
+    rightUpperArm: { x: -0.4, y: -0.3, z: 1.15 },
+    leftLowerArm: { x: 0.3, y: 0.1, z: 0.0 },
+    rightLowerArm: { x: 1.1, y: -0.5, z: 0.3 },
+    leftHand: { x: 0.0, y: 0.0, z: 0.0 },
+    rightHand: { x: 0.2, y: -0.1, z: 0.0 },
+    spine: { x: 0.04, y: 0.08, z: -0.05 }
+  },
+  greeting: {
+    leftUpperArm: { x: -0.3, y: 0.2, z: -1.2 },
+    rightUpperArm: { x: -0.1, y: 0.0, z: 1.35 },
+    leftLowerArm: { x: 1.0, y: 0.3, z: -0.1 },
+    rightLowerArm: { x: 0.25, y: -0.1, z: 0.0 },
+    leftHand: { x: 0.1, y: 0.0, z: 0.0 },
+    rightHand: { x: 0.0, y: 0.0, z: 0.0 },
+    spine: { x: -0.02, y: -0.02, z: 0.0 }
   }
 };
 
@@ -298,6 +316,13 @@ export class VRMAvatar {
         this.rightLowerArm = getBone('rightLowerArm');
         this.leftHand = getBone('leftHand');
         this.rightHand = getBone('rightHand');
+
+        // Reset to standard T-pose before storing default rotations to prevent offset / backward arm bugs
+        if (typeof vrm.humanoid.resetPose === 'function') {
+          vrm.humanoid.resetPose();
+        } else if (typeof vrm.humanoid.toResetPose === 'function') {
+          vrm.humanoid.toResetPose();
+        }
 
         // Store default rotations to enable relative motion and prevent gimbal twist / backward-swinging bugs!
         this.defaultRotations = {

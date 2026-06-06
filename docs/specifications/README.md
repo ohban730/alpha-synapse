@@ -19,7 +19,9 @@
 *   **[floating_hud.js 仕様書](file:///c:/Users/owner/Documents/lab/Antigravity/alpha-synapse/docs/specifications/floating_hud.md)**
     *   3D浮遊型ディスプレイ（HolographicPanel）と tactical ダイヤル（TacticalRadar）のCanvasテクスチャ描画とビルボード回転。
 *   **[news_portal.html 仕様書](file:///c:/Users/owner/Documents/lab/Antigravity/alpha-synapse/docs/specifications/news_portal.md)**
-    *   `<iframe>`内でのYahoo!ニュースRSSおよびWikipedia検索結果の取得、段階的CORSプロキシ回避。
+    *   `<iframe>`内でのYahoo!ニュースRSSおよびWikipedia検索結果 of 取得、段階的CORSプロキシ回避。
+*   **[server.py 仕様書](file:///c:/Users/owner/Documents/lab/Antigravity/alpha-synapse/docs/specifications/server_py.md)**
+    *   Python FastAPI によるローカルLLM (Ollama) およびローカル音声合成 (Style-Bert-VITS2) の超低遅延仲介・センテンス分割ストリーム処理。
 
 ---
 
@@ -72,6 +74,9 @@
 | **Vite** (`vite`) | `^8.0.12` | 開発環境のビルド、モジュールバンドル、およびローカルAPIプロキシサーバーの提供。 |
 | **Web Speech API** | ブラウザ標準 | テキストから音声への変換（TTS）およびマイク音声の認識（STT）。 |
 | **MediaRecorder API** | ブラウザ標準 | 音声認識非対応の環境における音声データ録音。 |
+| **FastAPI** (`fastapi`) | Python | OllamaおよびStyle-Bert-VITS2への非同期中継を行うためのバックエンドサーバー。 |
+| **Uvicorn** (`uvicorn`) | Python | FastAPIアプリケーションを稼働させるASGIサーバー。 |
+| **HTTPX** (`httpx`) | Python | OllamaおよびStyle-Bert-VITS2への非同期HTTP通信クライアント。 |
 
 ---
 

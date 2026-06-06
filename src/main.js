@@ -15,6 +15,12 @@ let avatar, voiceSystem, aiBrain;
 let prevAButtonPressed = false;
 let vrSTTActive = false;
 
+// Autonomy Loop Timers
+let idleTimer = null;
+const IDLE_TIMEOUT_MS = 90000; // 90 seconds
+let welcomeTimer = null;
+let isProactiveSpeaking = false;
+
 // Holographic Iron Man HUD elements
 let holoPanel, tacticalRadar;
 let controller1, controller2;
@@ -277,7 +283,7 @@ function initSubsystems() {
       const expression = match ? match[1].toLowerCase() : 'relaxed';
       
       aiBrain.applyAvatarExpression(expression);
-      voiceSystem.speak(speakText);
+      voiceSystem.speak(speakText, null, null, expression);
     }
   };
 
@@ -506,8 +512,17 @@ function hydrateSettingsUI() {
     });
 
     // 強固な選択ロック：全option追加後に明示的にselect要素の値を設定
-    if (selected) {
+    if (aiBrain && aiBrain.mode === 'ollama') {
+      voiceSelect.value = 'Style-Bert-VITS2 (ローカル音声 - 推奨)';
+      voiceSelect.disabled = true;
+      // Force selectedVoice to be Style-Bert-VITS2 in Ollama mode to keep state in sync
+      const match = voices.find(v => v.name === 'Style-Bert-VITS2 (ローカル音声 - 推奨)');
+      if (match) {
+        voiceSystem.selectedVoice = match;
+      }
+    } else if (selected) {
       voiceSelect.value = selected.name;
+      voiceSelect.disabled = false;
     }
   };
 
@@ -534,8 +549,34 @@ function toggleConfigGroups(mode) {
 
   if (mode === 'gemini') {
     geminiConfigGroup.classList.remove('hidden');
+    if (voiceSelect) {
+      voiceSelect.disabled = false;
+      const savedVoice = localStorage.getItem('alpha_selected_voice');
+      if (savedVoice) {
+        voiceSelect.value = savedVoice;
+      }
+    }
   } else if (mode === 'ollama') {
     ollamaConfigGroup.classList.remove('hidden');
+    if (voiceSelect) {
+      voiceSelect.value = 'Style-Bert-VITS2 (ローカル音声 - 推奨)';
+      voiceSelect.disabled = true;
+      // Sync voice selection immediately when switching to Ollama mode
+      if (voiceSystem && voiceSystem.voices) {
+        const match = voiceSystem.voices.find(v => v.name === 'Style-Bert-VITS2 (ローカル音声 - 推奨)');
+        if (match) {
+          voiceSystem.selectedVoice = match;
+        }
+      }
+    }
+  } else {
+    if (voiceSelect) {
+      voiceSelect.disabled = false;
+      const savedVoice = localStorage.getItem('alpha_selected_voice');
+      if (savedVoice) {
+        voiceSelect.value = savedVoice;
+      }
+    }
   }
 }
 
@@ -723,6 +764,141 @@ if (copySubtitleBtn) {
   });
 }
 
+// ==========================================================================
+// AUTONOMOUS PROACTIVE SPEAKING LOOP (能動性の実装)
+// ==========================================================================
+
+/**
+ * Resets the idle timer because of user interaction (STT, Text, clicks).
+ */
+function resetIdleTimer() {
+  if (idleTimer) {
+    clearTimeout(idleTimer);
+  }
+  // Reset flag
+  isProactiveSpeaking = false;
+  
+  // Schedule next idle check
+  idleTimer = setTimeout(triggerIdleProactiveSpeech, IDLE_TIMEOUT_MS);
+}
+
+/**
+ * Trigger proactive speech when user is idle for a long time.
+ */
+async function triggerIdleProactiveSpeech() {
+  // Prevent overlapping if already speaking, listening, or if another interaction is active
+  if (isProactiveSpeaking || (voiceSystem && (voiceSystem.isSpeaking || voiceSystem.isListening || voiceSystem.isRecording || vrSTTActive)) || document.body.classList.contains('thinking-active')) {
+    resetIdleTimer();
+    return;
+  }
+
+  isProactiveSpeaking = true;
+  console.log("Idle timeout reached. Triggering proactive speech...");
+  
+  if (linkStateText) {
+    linkStateText.innerText = 'SYNAPSE_DECRYPTING...';
+    linkStateText.classList.remove('glow-cyan');
+    linkStateText.classList.add('text-orange');
+  }
+
+  try {
+    const result = await aiBrain.generateActiveUtterance('idle');
+    
+    // Output subtitle and logs
+    subtitleOutput.innerText = result.text;
+    appendLogEntry('alpha', `Alpha: ${result.text}`);
+
+    if (linkStateText) {
+      linkStateText.innerText = 'SYNAPSED (STABLE)';
+      linkStateText.classList.remove('text-orange');
+      linkStateText.classList.add('glow-cyan');
+    }
+
+    if (avatar) {
+      avatar.setPose('teasing'); // 首をかしげるからかいポーズ
+      avatar.setExpression(result.expression || 'relaxed', 0.8);
+    }
+
+    if (voiceSystem) {
+      voiceSystem.speak(result.text, null, () => {
+        // Reset timer when finished speaking
+        resetIdleTimer();
+      }, result.expression);
+    } else {
+      resetIdleTimer();
+    }
+  } catch (e) {
+    console.error("Proactive idle speech failed:", e);
+    resetIdleTimer();
+  }
+}
+
+/**
+ * Triggers the welcome greeting depending on the current time of day.
+ */
+async function startWelcomeSequence() {
+  if (welcomeTimer) {
+    clearTimeout(welcomeTimer);
+  }
+
+  // Speak welcome message 4 seconds after VRM load completed
+  welcomeTimer = setTimeout(async () => {
+    if ((voiceSystem && (voiceSystem.isSpeaking || voiceSystem.isListening || voiceSystem.isRecording || vrSTTActive)) || document.body.classList.contains('thinking-active')) {
+      return;
+    }
+
+    const currentHour = new Date().getHours();
+    let type = 'noon';
+
+    if (currentHour >= 5 && currentHour < 11) {
+      type = 'morning';
+    } else if (currentHour >= 11 && currentHour < 18) {
+      type = 'noon';
+    } else if (currentHour >= 18 && currentHour < 23) {
+      type = 'night';
+    } else {
+      type = 'late_night';
+    }
+
+    console.log(`Triggering welcome sequence: ${type}`);
+
+    if (linkStateText) {
+      linkStateText.innerText = 'SYNAPSE_DECRYPTING...';
+      linkStateText.classList.remove('glow-cyan');
+      linkStateText.classList.add('text-orange');
+    }
+
+    try {
+      const result = await aiBrain.generateActiveUtterance(type);
+      
+      subtitleOutput.innerText = result.text;
+      appendLogEntry('alpha', `Alpha: ${result.text}`);
+
+      if (linkStateText) {
+        linkStateText.innerText = 'SYNAPSED (STABLE)';
+        linkStateText.classList.remove('text-orange');
+        linkStateText.classList.add('glow-cyan');
+      }
+
+      if (avatar) {
+        avatar.setPose('greeting'); // 左手を少し振る挨拶ポーズ
+        avatar.setExpression(result.expression || 'happy', 0.6);
+      }
+
+      if (voiceSystem) {
+        voiceSystem.speak(result.text, null, () => {
+          resetIdleTimer(); // Start the idle timer after welcome finishes
+        }, result.expression);
+      } else {
+        resetIdleTimer();
+      }
+    } catch (e) {
+      console.error("Proactive welcome speech failed:", e);
+      resetIdleTimer();
+    }
+  }, 4000);
+}
+
 // Print messages to chat log widget
 function appendLogEntry(role, text) {
   const entry = document.createElement('div');
@@ -738,6 +914,15 @@ function appendLogEntry(role, text) {
 // 5. INTERACTION & CONVERSATION PROCESSOR
 // ==========================================================================
 async function processConversation(message) {
+  // Clear proactive timers on user activity
+  if (idleTimer) {
+    clearTimeout(idleTimer);
+  }
+  if (welcomeTimer) {
+    clearTimeout(welcomeTimer);
+  }
+  isProactiveSpeaking = false;
+
   let promptText = '';
   let audioData = null;
   let audioMime = 'audio/webm';
@@ -780,7 +965,25 @@ async function processConversation(message) {
 
   // Trigger dialogue generation
   try {
-    const response = await aiBrain.generateResponse(promptText, audioData, audioMime);
+    // Clear subtitle text and prepare for streaming
+    subtitleOutput.innerText = '';
+    
+    const response = await aiBrain.generateResponse(
+      promptText, 
+      audioData, 
+      audioMime, 
+      (token) => {
+        // Remove loading blinking state when tokens start arriving
+        subtitleOutput.classList.remove('blink-slow');
+        // Append token, temporarily stripping any brackets [ to prevent raw emotion tags flashing in UI
+        subtitleOutput.innerText = (subtitleOutput.innerText + token).replace(/\[[a-zA-Z]*$/g, '');
+      },
+      (audioItem) => {
+        if (voiceSystem) {
+          voiceSystem.enqueueAudio(audioItem.audio, audioItem.text, audioItem.expression);
+        }
+      }
+    );
     
     // Increment session dialogue counter in Diagnostics panel
     totalDialogueCount++;
@@ -794,16 +997,14 @@ async function processConversation(message) {
       linkStateText.classList.add('glow-cyan');
     }
     
-    // Clear subtitles loading state
+    // Clear subtitles loading state and set finalized clean text
     subtitleOutput.classList.remove('blink-slow');
+    subtitleOutput.innerText = response.text;
 
     // Change Alpha's pose and expression to match target emotion INSTANTLY (snappy visual UX)
     if (aiBrain) {
       aiBrain.applyAvatarExpression(response.expression);
     }
-    
-    // Start typewriter effect INSTANTLY
-    typewriteSubtitle(response.text);
 
     // Dynamic search/news keyword detection (both prompt and reply to capture voice input content)
     const isErrorResponse = response.text.includes('ノイズが発生したわ') || response.text.includes('エラー内容');
@@ -856,26 +1057,33 @@ async function processConversation(message) {
     // ==========================================
     // 高速化の鍵: 音声合成の非同期並行実行（プレフェッチ）
     // ==========================================
-    const activeVoice = voiceSystem.selectedVoice;
-    const voiceInfo = activeVoice ? activeVoice.name : '未設定';
-    appendLogEntry('system', `>> [音声準備開始] ${voiceInfo} 用の音声をフェッチ中...`);
+    if (aiBrain && aiBrain.mode !== 'ollama') {
+      const activeVoice = voiceSystem.selectedVoice;
+      const voiceInfo = activeVoice ? activeVoice.name : '未設定';
+      appendLogEntry('system', `>> [音声準備開始] ${voiceInfo} 用の音声をフェッチ中...`);
 
-    // speak in background
-    voiceSystem.speak(
-      response.text,
-      // onStart callback (triggers EXACTLY when voice actually begins playing)
-      () => {
-        // Equalizer and lip sync are managed automatically inside voiceSystem when audio plays.
-        console.log("Audio playing in background...");
-      },
-      // onComplete callback
-      () => {
-        console.log("Dialogue synthesis finished.");
-      }
-    );
+      // speak in background
+      voiceSystem.speak(
+        response.text,
+        // onStart callback (triggers EXACTLY when voice actually begins playing)
+        () => {
+          // Equalizer and lip sync are managed automatically inside voiceSystem when audio plays.
+          console.log("Audio playing in background...");
+        },
+        // onComplete callback
+        () => {
+          console.log("Dialogue synthesis finished.");
+        }
+      );
+    } else if (aiBrain && aiBrain.mode === 'ollama') {
+      appendLogEntry('system', `>> [ローカル音声] Style-Bert-VITS2 (jvnv-F1-jp) による逐次再生キューが動作中...`);
+    }
 
     // Log AI reply
     appendLogEntry('alpha', `Alpha: ${response.text}`);
+
+    // Restart idle timer
+    resetIdleTimer();
 
   } catch (err) {
     document.body.classList.remove('thinking-active');
@@ -887,6 +1095,9 @@ async function processConversation(message) {
     subtitleOutput.classList.remove('blink-slow');
     subtitleOutput.innerText = '精神同調エラー：データが破壊されました。';
     appendLogEntry('system', `>> ERROR: ${err.message}`);
+    
+    // Restart idle timer even on failure
+    resetIdleTimer();
   }
 }
 

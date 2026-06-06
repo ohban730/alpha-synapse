@@ -40,6 +40,10 @@ export class VoiceSystem {
     this.mediaStream = null;
     this.recTimeout = null;
 
+    // Local SBV2 queue initialization
+    this.audioQueue = [];
+    this.isPlayingQueue = false;
+
     this.initSynthesis();
     this.initRecognition();
   }
@@ -48,6 +52,14 @@ export class VoiceSystem {
    * Initialize Text-To-Speech Synthesis
    */
   initSynthesis() {
+    // Define local Style-Bert-VITS2 option
+    const localTtsVoice = {
+      name: 'Style-Bert-VITS2 (ローカル音声 - 推奨)',
+      lang: 'ja-JP',
+      isLocalTTS: true,
+      voiceName: 'jvnv-F1-jp'
+    };
+
     // Define high-quality Gemini Native API Speech Synthesis options
     const geminiVoices = [
       { name: 'Gemini - Leda (優雅な女性ボイス)', lang: 'ja-JP', isGeminiTTS: true, voiceName: 'Leda' },
@@ -77,8 +89,8 @@ export class VoiceSystem {
         }
       }
 
-      // Combine Gemini native voices, fallback voice, and native voices
-      this.voices = [...geminiVoices, fallbackVoice, ...nativeVoices];
+      // Combine Local TTS, Gemini native voices, fallback voice, and native voices
+      this.voices = [localTtsVoice, ...geminiVoices, fallbackVoice, ...nativeVoices];
       
       // Load saved voice from localStorage
       let savedVoiceName = localStorage.getItem('alpha_selected_voice');
@@ -312,7 +324,7 @@ export class VoiceSystem {
    * @param {function} onStart Callback when speech starts playing
    * @param {function} onComplete Callback when speech ends
    */
-  speak(text, onStart, onComplete) {
+  speak(text, onStart, onComplete, emotion = 'relaxed') {
     // Stop active speech and clean timers
     this.stopSpeaking();
 
@@ -326,6 +338,102 @@ export class VoiceSystem {
 
     const isGeminiTTS = this.selectedVoice && this.selectedVoice.isGeminiTTS;
     const isFallback = this.selectedVoice && this.selectedVoice.isFallback;
+    const isLocalTTS = this.selectedVoice && this.selectedVoice.isLocalTTS;
+
+    // 0. Local Style-Bert-VITS2 (SBV2) TTS via server.py
+    if (isLocalTTS) {
+      console.log('Routing speech synthesis to Local Style-Bert-VITS2 (via server.py).');
+      
+      const isLocalDev = window.location.hostname === 'localhost' || 
+                          window.location.hostname === '127.0.0.1' || 
+                          window.location.hostname === '[::1]' ||
+                          window.location.hostname.endsWith('.local') ||
+                          /^192\.168\./.test(window.location.hostname) ||
+                          /^10\./.test(window.location.hostname) ||
+                          /^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(window.location.hostname);
+      const endpoint = isLocalDev ? '/api/local-brain/api/tts' : 'http://localhost:8000/api/tts';
+      
+      // Split text into chunks that are strictly under 90 characters to bypass the SBV2 100-char limit
+      const rawChunks = cleanText.split(/[。！？\n]+/).map(s => s.trim()).filter(s => s.length > 0);
+      const chunks = [];
+      
+      rawChunks.forEach(chunk => {
+        if (chunk.length <= 90) {
+          chunks.push(chunk);
+        } else {
+          // Sub-split by commas or spaces if too long
+          let currentSub = '';
+          const subParts = chunk.split(/[、, ]+/);
+          subParts.forEach(part => {
+            if ((currentSub + part).length > 85) {
+              if (currentSub) chunks.push(currentSub);
+              currentSub = part;
+            } else {
+              currentSub = currentSub ? currentSub + '、' + part : part;
+            }
+          });
+          if (currentSub) chunks.push(currentSub);
+        }
+      });
+
+      if (chunks.length === 0) {
+        if (onComplete) onComplete();
+        return;
+      }
+
+      // Prepare array to hold audio results in correct order
+      const results = new Array(chunks.length);
+      let loadedCount = 0;
+      let startedPlaying = false;
+
+      const playQueueIfReady = () => {
+        // Enqueue successfully loaded chunks in order
+        while (loadedCount < chunks.length && results[loadedCount] !== undefined) {
+          const res = results[loadedCount];
+          if (res && res.audio) {
+            this.enqueueAudio(res.audio, res.text, emotion);
+            if (!startedPlaying) {
+              startedPlaying = true;
+              if (onStart) onStart();
+            }
+          }
+          loadedCount++;
+        }
+        if (loadedCount >= chunks.length && this.audioQueue.length === 0 && !this.isPlayingQueue) {
+          // All chunks done and finished playing
+          if (onComplete) onComplete();
+        }
+      };
+
+      // Fetch all chunks in parallel
+      chunks.forEach((chunkText, idx) => {
+        fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text: chunkText, emotion: emotion })
+        })
+        .then(response => {
+          if (!response.ok) throw new Error(`HTTP ${response.status}`);
+          return response.json();
+        })
+        .then(result => {
+          if (result.error) throw new Error(result.error);
+          results[idx] = {
+            audio: result.audio,
+            text: chunkText
+          };
+          playQueueIfReady();
+        })
+        .catch(err => {
+          console.error(`Local TTS chunk ${idx} failed:`, err);
+          // Insert null to prevent blocking the queue
+          results[idx] = null;
+          playQueueIfReady();
+        });
+      });
+
+      return;
+    }
 
     // 1. High-fidelity Gemini Native TTS
     if (isGeminiTTS && this.aiBrain && this.aiBrain.geminiKey) {
@@ -532,6 +640,9 @@ export class VoiceSystem {
    * Stop active speech synthesis and clean states.
    */
   stopSpeaking() {
+    this.audioQueue = [];
+    this.isPlayingQueue = false;
+
     if (this.synth) {
       try {
         this.synth.cancel();
@@ -541,10 +652,94 @@ export class VoiceSystem {
       try {
         this.fallbackAudio.pause();
         this.fallbackAudio.removeAttribute('src');
+        this.fallbackAudio.onerror = null;
+        this.fallbackAudio.onplay = null;
+        this.fallbackAudio.onended = null;
         this.fallbackAudio.load();
       } catch (e) {}
     }
     this.cleanupSpeechState();
+  }
+
+  /**
+   * Enqueue dynamic local voice synthesis audio for Ollama mode
+   */
+  enqueueAudio(base64Audio, cleanText, expression) {
+    this.audioQueue.push({
+      base64Audio,
+      cleanText,
+      expression
+    });
+    console.log(`Audio enqueued. Queue length: ${this.audioQueue.length}`);
+    if (!this.isPlayingQueue) {
+      this.playNextInQueue();
+    }
+  }
+
+  /**
+   * Play the next audio item in the queue
+   */
+  playNextInQueue() {
+    if (this.audioQueue.length === 0) {
+      this.isPlayingQueue = false;
+      this.cleanupSpeechState();
+      return;
+    }
+
+    this.isPlayingQueue = true;
+    const currentItem = this.audioQueue.shift();
+    let audioUrl = '';
+    
+    try {
+      // Decode Base64 WAV to Blob
+      const raw = window.atob(currentItem.base64Audio);
+      const uInt8Array = Uint8Array.from(raw, (_, i) => raw.charCodeAt(i));
+      const wavBlob = new Blob([uInt8Array], { type: 'audio/wav' });
+      audioUrl = URL.createObjectURL(wavBlob);
+      
+      this.fallbackAudio.src = audioUrl;
+
+      // Sync expression
+      if (this.aiBrain) {
+        this.aiBrain.applyAvatarExpression(currentItem.expression);
+      }
+
+      this.fallbackAudio.onplay = () => {
+        this.isSpeaking = true;
+        this.avatar.setSpeaking(true);
+        this.animateEqualizer(true);
+        
+        const lipSyncText = currentItem.cleanText
+          .replace(/\(.*?\)/g, '')
+          .replace(/（.*?）/g, '')
+          .replace(/\[.*?\]/g, '')
+          .replace(/[*_`~#]/g, '')
+          .replace(/[「」『』【】]/g, '、');
+        this.startLipSyncLoop(lipSyncText);
+      };
+
+      this.fallbackAudio.onended = () => {
+        if (audioUrl) URL.revokeObjectURL(audioUrl);
+        this.playNextInQueue();
+      };
+
+      this.fallbackAudio.onerror = (e) => {
+        console.error('Queue audio playback error:', e);
+        if (audioUrl) URL.revokeObjectURL(audioUrl);
+        this.playNextInQueue();
+      };
+
+      this.fallbackAudio.play().catch((e) => {
+        console.error('Failed to play queue audio:', e);
+        if (audioUrl) URL.revokeObjectURL(audioUrl);
+        this.playNextInQueue();
+      });
+
+    } catch (err) {
+      console.error('Failed to parse queued audio base64:', err);
+      if (audioUrl) URL.revokeObjectURL(audioUrl);
+      this.playNextInQueue();
+    }
   }
 
   /**
@@ -613,13 +808,34 @@ export class VoiceSystem {
    * Triggered by direct user gestures to bypass strict browser autoplay policies.
    */
   warmUpAudio() {
+    // 1. Web Speech API (SpeechSynthesis) warm up / unlock
+    if (this.synth) {
+      try {
+        const dummyUtterance = new SpeechSynthesisUtterance(' ');
+        dummyUtterance.volume = 0.0;
+        this.synth.speak(dummyUtterance);
+      } catch (e) {
+        console.warn('Failed to warm up SpeechSynthesis:', e);
+      }
+    }
+
+    // 2. HTML5 Audio elements warm up
     try {
       // Use a completely independent temporary Audio element to warm up permissions,
       // preventing any interruption or replay of the main active TTS playback!
       const dummyAudio = new Audio('data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA');
       dummyAudio.play().catch(() => {});
+
+      // Play a short silent sound on the main fallbackAudio element to unlock it for future async playbacks
+      if (this.fallbackAudio && (this.fallbackAudio.paused || !this.fallbackAudio.src)) {
+        const originalSrc = this.fallbackAudio.src;
+        if (!originalSrc || originalSrc.startsWith('data:')) {
+          this.fallbackAudio.src = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA';
+          this.fallbackAudio.play().catch(() => {});
+        }
+      }
     } catch (err) {
-      console.warn('Failed to warm up Audio element:', err);
+      console.warn('Failed to warm up Audio elements:', err);
     }
 
     try {

@@ -10,6 +10,11 @@ export default defineConfig({
     open: true,
     host: true, // Quest3などのローカルネットワーク機器から接続可能にする
     proxy: {
+      '/api/local-brain': {
+        target: 'http://127.0.0.1:8000',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/local-brain/, '')
+      },
       '/api/ollama': {
         target: 'http://127.0.0.1:11434',
         changeOrigin: true,

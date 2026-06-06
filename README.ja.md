@@ -57,6 +57,13 @@
     2. デコーダー画面が立ち上がり、フィードの取得とインサイトの解析が行われ、**「ALPHA AI INSIGHT」** ボックスに分析テキストが表示されます。
     3. **「🎙️ 音声読み上げ」** ボタンをクリックすると、アルファがインサイトの解説と「マスターへのアドバイス」を音声（TTS）で優しく読み上げます。
 
+### 5. 自律的な能動発話（アルファから話しかけてくる）
+*   **体験内容**: アルファはユーザーからの問いかけを待つだけではなく、自ら積極的に話しかけてきます。放置時間を検知すると、LLMがその場でセリフを生成し、からかいや気遣いの言葉を投げかけてきます。
+*   **動作の仕組み**:
+    - ユーザーが **90秒間** 何も操作しないと、アルファが自律的にセリフを生成し（LLMオンライン時）、`teasing`（からかい）ポーズで話しかけてきます。
+    - テキスト送信・音声対話のたびにタイマーは自動リセットされるため、会話中に割り込み発話は起きません。
+    - LLMがオフラインの場合は、あらかじめ用意したテンプレートフレーズからランダムに選択されます。
+
 ---
 
 ## 📋 動作前提条件 (Prerequisites)
@@ -170,13 +177,53 @@ ollama pull llama3.2
 
 ## ⚡ トラブルシューティング (Ollama接続時)
 
-### 🔴 会話時に "Failed to fetch"（接続失敗）のエラーが出る
+### 🔴 会話時に "Failed to Fetch"（接続失敗）のエラーが出る
 1. **Ollamaが起動しているか確認:**
    ブラウザで `http://localhost:11434` にアクセスし、画面に `Ollama is running` と表示されるか確認してください。
 2. **CORS設定の漏れ:**
    `OLLAMA_ORIGINS` 環境変数が適用されていない可能性が高いです。特にWindowsの場合、Ollamaトレイアイコンからの「終了＆再起動」が行われているかを再確認してください。
 3. **HTTPS本番デモサイトからのアクセス制限:**
    本番HTTPSの公開サイト（`https://alpha-xr.org`）からアクセスする場合、一部のブラウザのMixed Content規制に引っかかる場合があります。その場合は上記の手順に従い、ローカルで `npm run dev`（HTTP接続）した環境からアクセスしてください。
+4. **バックエンドサーバーが起動していない:**
+   ローカルLLMモード（Ollamaモード）を使用する場合は、`python src/server.py` も別ターミナルで起動している必要があります（ポート `8000`）。
+
+---
+
+## 🤖 ローカルAIバックエンド（Ollama + Style-Bert-VITS2）
+
+インターネット接続なしで完全プライベート・無料の対話と、リアルタイムに流れる自然な日本語音声合成を体験できる**上級者向けモード**です。
+
+> [!NOTE]
+> このモードは、Vite開発サーバーに加えて、Pythonバックエンドサーバー（`src/server.py`）を別プロセスで起動する必要があります。
+
+### 事前準備
+- Python環境（`conda` または `venv` 推奨）に `requirements.txt` のパッケージをインストール済みであること
+- [Ollama](https://ollama.com/) が起動し、お好みのモデル（例：`gemma2:9b`）をダウンロード済みであること
+- [Style-Bert-VITS2](https://github.com/litagin02/Style-Bert-VITS2) のAPIサーバーがポート `5000` で起動済みであること
+
+### 1. Python依存パッケージのインストール
+```bash
+pip install -r requirements.txt
+```
+
+### 2. ローカルバックエンドサーバーの起動
+```bash
+# プロジェクトルートから実行
+python src/server.py
+# サーバーが http://localhost:8000 で起動します
+```
+
+### 3. アプリでの接続確認
+1. ブラウザで `http://localhost:3000`（またはHTTPSモードの場合は `https://127.0.0.1:3000`）を開きます。
+2. **「INTELLIGENCE SYNC CORE」** ドロップダウンで **「Ollama (ローカルLLM)」** を選択します。
+3. モデル名（例：`gemma2:9b`）を入力し、**「ニューラルリンクを同期」** をクリックします。
+4. アルファが **Style-Bert-VITS2** の声で、文単位にリアルタイムで発話します。
+
+### 💸 ローカルモードのメリット
+*   **完全プライベート**: 会話データが一切外部に出ません。
+*   **無制限・無料**: APIクォータなし、コストなし。
+*   **超低レイテンシ**: SSEストリーミングパイプラインにより、LLMの応答生成開始から約1秒以内に最初の音声が再生されます。
+*   **感情連動音声**: アルファの返答に含まれる `[happy]`・`[sad]` などの感情タグが、Style-Bert-VITS2の音声スタイルにリアルタイムでマッピングされます。
 
 ---
 
@@ -216,5 +263,7 @@ ollama pull llama3.2
 
 *   **Core**: Vanilla HTML5, CSS3, ES6 JavaScript
 *   **3D Graphics**: Three.js, @pixiv/three-vrm (3D Avatar Engine)
-*   **AI Backend**: Google Gemini API (v1beta beta-tts), Ollama (Local LLM Core)
+*   **AI Backend (クラウド)**: Google Gemini API (v1beta native TTS)
+*   **AI Backend (ローカル)**: Ollama LLM + Python FastAPI (`src/server.py`) SSEリレー
+*   **Voice Synthesis (ローカル)**: Style-Bert-VITS2 (感情連動日本語TTS)
 *   **AR/VR**: WebXR Device API (Meta Quest 3で動作確認)
