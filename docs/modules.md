@@ -114,11 +114,15 @@ AIとの会話の受け渡しや、会話履歴（コンテキスト）の管理
 ## 3. 🎙️ `src/voice-system.js` (音声認識・合成と波形演出)
 マイクから声を拾い（STT）、AIのセリフを喋らせ（TTS）、声に合わせて波形を動かすクラス `VoiceSystem` です。
 
-### 🌟 コアアルゴリズム①：非同期逐次再生キュー (audioQueue)
+### 🌟 コアアルゴリズム①：ローカルSTT録音フロー（MediaRecorder）
+NEURAL LINK ボタン押下時に `MediaRecorder` を起動してマイク入力を録音し、ボタン再押下で停止した後に WebM 形式の Blob を `/api/stt` へ POST 送信します。
+最終的に返ってきたテキストをチャット入力欄に自動入力し、`processConversation()` を呼び出すことでシームレスな音声対話フローを実現しています。
+
+### 🌟 コアアルゴリズム②：非同期逐次再生キュー (audioQueue)
 Ollamaモードではバックエンドから「文」の単位で生成された音声バイナリ（Base64形式）が順次届きます。これを `enqueueAudio` メソッドで再生キュー `audioQueue` に格納し、現在何も再生されていなければ `playNextInQueue` を使って即時に Blob URL 形式にデコードして HTML5 Audio にて連続再生します。
 音声の再生開始に合わせて `aiBrain` を通して表情（`expression`）を適用し、再生時間中に口パク（リップシンク）ループを同期させます。
 
-### 🌟 コアアルゴリズム②：WAVヘッダーの自動注入
+### 🌟 コアアルゴリズム③：WAVヘッダーの自動注入
 Gemini API の音声合成（Native TTS）機能は、時折ヘッダー（データの身元情報）がない「生データ（PCM形式のバイナリ）」を返します。ブラウザの音楽プレイヤーは、ヘッダーがないと「何のファイルか（サンプリングレートやチャンネル数など）」がわからず、再生できません。
 
 これを解決するため、プログラム側で**「44バイトのWAVヘッダー」**を自前で作成し、生データの先頭にガッチャンコ（結合）して再生可能な音声ファイル（Blob）に変換しています（`pcmToWavBlob`）。
@@ -160,6 +164,7 @@ Gemini API の音声合成（Native TTS）機能は、時折ヘッダー（デ�
 
 ### 🌟 コアアルゴリズム①：システムボイス UI の動的ロック制御
 Ollamaモード使用時に、右側設定パネルの「ALPHA SYSTEM VOICE」を強制的に「Style-Bert-VITS2 (ローカル音声 - 推奨)」へ切り替えて無効化（disabled）します。これによりユーザーへ現在ローカル音声が動いていることを明示します。リンク設定をGeminiやOfflineに戻した際には自動で無効化を解除し、元の設定音声（Leda等）を復元します。
+また、Ollama接続時には各モジュールの初期化同期フラグ（`isSyncReady`）を強制的に待機状態へ更新し、ストリームの途切れによる誤動作を防止します。
 
 ### 🌟 コアアルゴリズム②：自律的な能動発話ループ（Autonomy Loop）
 アルファが「受動的に応答するだけのAI」から「能動的に話しかけてくるAI」になるための仕組みです。タイマーと非同期LLM呼び出しを組み合わせ、バックグラウンドで常にユーザーの状態を監視して自律的に発話を生成します。
@@ -237,11 +242,41 @@ Web Visor（前面のブラウザ画面）の中に表示されるHTMLファイ�
 
 これらのモジュールの連動によって、まるでお互いがリアルタイムに同期しているかのような、没入感のあるシミュレーションが実現されています。
 ## 7. 🐍 `src/server.py` (中継バックエンド)
-Ollama（ローカルLLM）と Style-Bert-VITS2（ローカル音声合成）を非同期並行で仲介する Python FastAPI サーバーです。
+Ollama（ローカルLLM）と Style-Bert-VITS2（ローカル音声合成）、および faster-whisper（ローカルSTT）を非同期並行で仲介する Python FastAPI サーバーです。
 
-### 🌟 コアアルゴリズム：非同期センテンス分割 & 感情連動TTS
+### 🌟 コアアルゴリズム①：非同期センテンス分割 & 感情連動TTS
 Ollamaのストリーム出力をバッファリングし、日本語の文末記号（`。` `！` `？` `\n`）の境界でリアルタイムにセンテンスを切り出します。
 切り出された各文のテキストから余分な記号を消去し、文末の感情タグ（`[happy]`など）を検知して Style-Bert-VITS2 の感情スタイル（`Happy`, `Angry`, `Sad`など）にマッピング。ポート `5000` の TTS サーバーに非同期 POST リクエストを投げ、生成されたWAVバイナリをBase64化してブラウザに SSE 経由で即時転送します。
+
+### 🌟 コアアルゴリズム②：ローカルSTT（/api/stt）とWebM → WAV変換
+NEURAL LINK ボタンから送信される録音済み音声（WebM形式）を faster-whisper でテキスト化するエンドポイント `POST /api/stt` を実装しています。
+
+```
+[音声入力処理フロー]
+
+ ブラウザ (WebM Blob)
+        │
+        ▼ POST /api/stt
+ サーバー側
+        │
+        ├─ 0バイトガード → 400 エラー
+        │
+        ├─ static-ffmpeg の FFmpeg バイナリを取得
+        │
+        ├─ FFmpeg: WebM → 16kHz モノラル PCM WAV 変換
+        │
+        ├─ faster-whisper.transcribe(wav_path, language="ja")
+        │          ↳ CUDA GPU (RTX 5090) で超高速推論
+        │
+        └─ {"text": "文字起こし結果"} を JSON で返却
+```
+
+**要点**: ブラウザの `MediaRecorder` は WebM（または MP4）形式の音声を出力するが、PyAV（`av`）のWindows向けwheelではそのままデコードできない（`End of file`エラー）ため、FFmpeg経由の変換が不可欠です。
+
+### 🌟 コアアルゴリズム③：Windows向け CUDA DLL ロード初期化
+`ctranslate2`（faster-whisper内部）は起動時に CUDA/cuDNN の DLL を動的ロードします。Python 3.8以降のWindowsでは `os.environ["PATH"]` の変更だけでは不十分な場合があるため、`os.add_dll_directory()` で明示的に検索パスを登録しています。
+
+> ⚠️ `ctranslate2` は `cudnn64_8.dll`（cuDNN **8.x**）を要求します。cuDNN 9.x ではロード失敗し、CPUフォールバックになります。`nvidia-cudnn-cu12==8.9.7.29` を必ず指定してください。
 
 ---
 

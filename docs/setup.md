@@ -65,6 +65,16 @@ Ollamaから流れるトークンを文に切り分け、音声合成（Style-Be
    ```
    - **何をしているのか？**: ポート `5000` で FastAPI ベースの TTS サーバーが起動し、`model_assets\` 内の日本語音声モデルをロードして待機します。
 
+### 5. faster-whisper 音声認識（STT）サーバーについて
+
+音声認識（STT）は FastAPI バックエンドサーバー（ポート `8000`）に組み込まれています。**手順3で起動した `uvicorn` サーバーがそのままSTTサーバーも兼ねています**。追加の起動操作は不要です。
+
+- STTエンドポイント: `POST /api/stt`（Viteプロキシ経由: `/api/local-brain/api/stt`）
+- 使用モデル: `faster-whisper-large-v3-turbo`（HuggingFaceよりキャッシュ済み）
+- 推論デバイス: CUDA GPU（RTX 5090）
+
+> ⚠️ **CUDA依存パッケージについて**: `ctranslate2` は `cudnn64_8.dll`（cuDNN 8.x）を必要とします。conda環境 `alpha-brain` には `nvidia-cudnn-cu12==8.9.7.29` がインストール済みです。cuDNN 9.x では動作しないため注意してください。
+
 ---
 
 ## 🛑 超難所：CORS 制限と Mixed Content の謎

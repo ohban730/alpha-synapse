@@ -1,10 +1,52 @@
+import os
+import sys
+
+# Add CUDA library directories to Windows DLL search path and system PATH
+cuda_dirs = [
+    r"C:\Users\owner\miniconda3\envs\alpha-brain\Lib\site-packages\nvidia\cublas\bin",
+    r"C:\Users\owner\miniconda3\envs\alpha-brain\Lib\site-packages\nvidia\cudnn\bin",
+    r"C:\Users\owner\miniconda3\envs\alpha-brain\Lib\site-packages\nvidia\cuda_nvrtc\bin",
+    r"C:\Users\owner\miniconda3\envs\alpha-brain\Lib\site-packages\nvidia\cuda_runtime\bin"
+]
+for d in cuda_dirs:
+    if os.path.exists(d):
+        os.add_dll_directory(d)
+        os.environ["PATH"] = d + ";" + os.environ["PATH"]
+
 import httpx
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 import json
+import static_ffmpeg
+from faster_whisper import WhisperModel
+
+# Initialize static ffmpeg binaries dynamically for the current process
+static_ffmpeg.add_paths()
 
 app = FastAPI(title="Alpha Synapse Local AI Backend")
+
+# Global reference for local STT model
+stt_model = None
+
+def get_stt_model():
+    global stt_model
+    if stt_model is None:
+        try:
+            print("Lazy initializing WhisperModel on CUDA...")
+            # large-v3-turbo is extremely fast and accurate.
+            stt_model = WhisperModel("large-v3-turbo", device="cuda", compute_type="float16")
+            print("WhisperModel initialized on CUDA successfully.")
+        except Exception as cuda_err:
+            print(f"Failed to initialize WhisperModel on CUDA: {cuda_err}. Falling back to CPU.")
+            try:
+                stt_model = WhisperModel("large-v3-turbo", device="cpu", compute_type="int8")
+                print("WhisperModel initialized on CPU successfully.")
+            except Exception as cpu_err:
+                print(f"Failed to initialize WhisperModel on CPU: {cpu_err}")
+    return stt_model
+
+
 
 # Allow CORS so that the front-end running on standard dev ports can communicate seamlessly
 app.add_middleware(
@@ -214,7 +256,90 @@ async def tts(request: Request):
     except Exception as e:
         return {"error": f"TTS Synthesis Failed: {str(e)}"}
 
+@app.post("/api/stt")
+async def stt(file: UploadFile = File(...)):
+    model = get_stt_model()
+    if model is None:
+        return {"error": "STT model could not be initialized."}
+
+    import tempfile
+    import os
+    import subprocess
+    
+    temp_path = None
+    wav_path = None
+    try:
+        # Write uploaded file to a temporary file
+        audio_bytes = await file.read()
+        print(f"Received audio upload. Size: {len(audio_bytes)} bytes")
+        if len(audio_bytes) == 0:
+            return {"error": "Empty audio file received."}
+
+        with tempfile.NamedTemporaryFile(suffix=".webm", delete=False) as temp_audio:
+            temp_audio.write(audio_bytes)
+            temp_path = temp_audio.name
+            
+        # Convert webm to standard WAV (16kHz, mono, PCM 16-bit)
+        wav_path = temp_path + ".wav"
+        cmd = [
+            "ffmpeg", "-y",
+            "-i", temp_path,
+            "-acodec", "pcm_s16le",
+            "-ar", "16000",
+            "-ac", "1",
+            wav_path
+        ]
+        
+        print(f"Converting {temp_path} to WAV: {wav_path}")
+        result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        if result.returncode != 0:
+            stderr_msg = result.stderr.decode('utf-8', errors='ignore')
+            print(f"FFmpeg conversion failed: {stderr_msg}")
+            raise Exception(f"Audio conversion failed: {stderr_msg}")
+            
+        if not os.path.exists(wav_path) or os.path.getsize(wav_path) == 0:
+            raise Exception("Converted WAV file is empty or missing.")
+            
+        # Transcribe the converted WAV audio
+        try:
+            segments, info = model.transcribe(wav_path, beam_size=5, language="ja")
+            transcription = "".join([segment.text for segment in segments])
+        except Exception as trans_err:
+            if model and getattr(model, "device", None) == "cuda":
+                print(f"CUDA transcription failed: {trans_err}. Re-initializing on CPU and retrying...")
+                try:
+                    import gc
+                    del model
+                    gc.collect()
+                except Exception:
+                    pass
+                global stt_model
+                stt_model = WhisperModel("large-v3-turbo", device="cpu", compute_type="int8")
+                model = stt_model
+                segments, info = model.transcribe(wav_path, beam_size=5, language="ja")
+                transcription = "".join([segment.text for segment in segments])
+            else:
+                raise trans_err
+        
+        return {"text": transcription.strip()}
+    except Exception as e:
+        print(f"Error during STT transcription: {e}")
+        return {"error": f"STT failed: {str(e)}"}
+    finally:
+        # Clean up temporary files
+        if temp_path and os.path.exists(temp_path):
+            try:
+                os.remove(temp_path)
+            except Exception as e:
+                print(f"Failed to remove temp file: {e}")
+        if wav_path and os.path.exists(wav_path):
+            try:
+                os.remove(wav_path)
+            except Exception as e:
+                print(f"Failed to remove wav file: {e}")
+
 if __name__ == "__main__":
     import uvicorn
     # Bound to localhost:8000
     uvicorn.run("server:app", host="127.0.0.1", port=8000, reload=True)
+

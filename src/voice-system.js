@@ -859,6 +859,14 @@ export class VoiceSystem {
    * @param {boolean} isGeminiMode Flag to permit direct audio upload fallback
    */
   listen(onFinalResult, isGeminiMode = false) {
+    const isOllamaMode = this.aiBrain && this.aiBrain.mode === 'ollama';
+
+    if (isOllamaMode) {
+      console.log('Ollama mode active. Forcing completely local STT using MediaRecorder and backend Whisper.');
+      this.startMicRecording(onFinalResult);
+      return;
+    }
+
     if (!this.recognition) {
       if (isGeminiMode) {
         console.log('Speech Recognition not supported. Activating Gemini Audio Fallback (MediaRecorder).');
@@ -925,17 +933,64 @@ export class VoiceSystem {
         const actualMime = this.mediaRecorder.mimeType || 'audio/webm';
         const audioBlob = new Blob(this.audioChunks, { type: actualMime });
         
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          const base64Data = reader.result.split(',')[1];
-          if (onFinalResult) {
-            onFinalResult({
-              audioBase64: base64Data,
-              mimeType: actualMime.split(';')[0]
-            });
-          }
-        };
-        reader.readAsDataURL(audioBlob);
+        const isOllamaMode = this.aiBrain && this.aiBrain.mode === 'ollama';
+        
+        if (isOllamaMode) {
+          console.log('Sending audio blob to local FastAPI server for Whisper transcription...');
+          
+          const isLocalDev = window.location.hostname === 'localhost' || 
+                              window.location.hostname === '127.0.0.1' || 
+                              window.location.hostname === '[::1]' ||
+                              window.location.hostname.endsWith('.local') ||
+                              /^192\.168\./.test(window.location.hostname) ||
+                              /^10\./.test(window.location.hostname) ||
+                              /^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(window.location.hostname);
+          const endpoint = isLocalDev ? '/api/local-brain/api/stt' : 'http://localhost:8000/api/stt';
+          
+          const formData = new FormData();
+          formData.append('file', audioBlob, 'audio.webm');
+          
+          this.updateUIState('transcribing');
+          
+          fetch(endpoint, {
+            method: 'POST',
+            body: formData
+          })
+          .then(response => {
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            return response.json();
+          })
+          .then(result => {
+            if (result.error) throw new Error(result.error);
+            console.log('Local STT transcription result:', result.text);
+            
+            this.updateUIState('idle');
+            
+            if (onFinalResult) {
+              onFinalResult(result.text);
+            }
+          })
+          .catch(err => {
+            console.error('Local STT transcription failed:', err);
+            this.updateUIState('error', err.message);
+            if (onFinalResult) {
+              onFinalResult('');
+            }
+          });
+        } else {
+          // Standard base64 fallback for Gemini mode
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            const base64Data = reader.result.split(',')[1];
+            if (onFinalResult) {
+              onFinalResult({
+                audioBase64: base64Data,
+                mimeType: actualMime.split(';')[0]
+              });
+            }
+          };
+          reader.readAsDataURL(audioBlob);
+        }
 
         stream.getTracks().forEach(track => track.stop());
       };
@@ -944,14 +999,14 @@ export class VoiceSystem {
       this.updateUIState('listening_fallback');
 
       this.mediaRecorder.start();
-      console.log('Started microphone recording fallback...');
+      console.log('Started microphone recording...');
 
-      // Auto-stop after 5 seconds to prevent huge payloads
+      // Auto-stop after 10 seconds to give user enough time to speak naturally
       this.recTimeout = setTimeout(() => {
         if (this.isRecording) {
           this.stopMicRecording();
         }
-      }, 5000);
+      }, 10000);
 
     } catch (err) {
       console.error('Failed to access microphone for Audio Fallback:', err);

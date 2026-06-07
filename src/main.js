@@ -141,7 +141,12 @@ function initSubsystems() {
       sttStatusText.classList.remove('text-orange');
     } else if (state === 'listening_fallback') {
       document.querySelector('.voice-link-container').classList.add('active');
-      sttStatusText.innerText = '音声リンク: 【録音中... 5秒後に自動送信】';
+      sttStatusText.innerText = '音声リンク: 【録音中... 10秒後に自動送信】';
+      sttStatusText.classList.add('glow-cyan');
+      sttStatusText.classList.remove('text-orange');
+    } else if (state === 'transcribing') {
+      document.querySelector('.voice-link-container').classList.add('active');
+      sttStatusText.innerText = '音声リンク: 【ローカルAI解析中...】';
       sttStatusText.classList.add('glow-cyan');
       sttStatusText.classList.remove('text-orange');
     } else if (state === 'error') {
@@ -584,6 +589,12 @@ function toggleConfigGroups(mode) {
 linkTypeSelect.addEventListener('change', (e) => {
   const mode = e.target.value;
   toggleConfigGroups(mode);
+  
+  // Immediately apply and save selected mode to prevent voice STT engine mismatch
+  aiBrain.mode = mode;
+  aiBrain.saveToStorage();
+  updateActiveModelDisplay();
+  appendLogEntry('system', `>> 精神リンク再同期: コアモード -> [${mode.toUpperCase()}]`);
   
   if (mode === 'ollama') {
     const isLocalDev = window.location.hostname === 'localhost' || 

@@ -84,12 +84,15 @@ graph TD
     subgraph LocalAI ["ローカル AI サービス"]
         I["Ollama（gemma2:9b）"]
         J["Style-Bert-VITS2（jvnv-F1-jp）"]
+        K["faster-whisper（large-v3-turbo / CUDA）"]
     end
 
-    D -->|"HTTPS リクエスト・SSE"| G
+    D -->|"HTTPS チャット・SSE"| G
+    B -->|"HTTPS 音声アップロード（/api/stt）"| G
     G -->|"HTTP 8000 ポート中継"| H
     H -->|"HTTP 11434 チャット要求"| I
     H -->|"HTTP 5000 音声合成要求"| J
+    H -->|"GPU推論（CUDA）"| K
     E -->|"音声バイナリ（Base64）"| D
 
     classDef client fill:#1f3d52,stroke:#00f3ff,stroke-width:2px,color:#fff;
@@ -100,7 +103,7 @@ graph TD
     class A,B,C,D,E,F client;
     class G proxy;
     class H backend;
-    class I,J ai;
+    class I,J,K ai;
 ```
 
 ---
@@ -121,8 +124,11 @@ sequenceDiagram
 
     %% 1. 入力フェーズ
     U->>UI: テキスト入力 または 音声対話ボタン押下
-    UI->>VS: 音声の聞き取り開始（STT・録音）
-    VS-->>UI: ユーザーの話し声をテキスト化（または音声Blob）
+    UI->>VS: 録音開始（MediaRecorder）
+    U->>UI: 録音停止（ボタン再押下）
+    VS-->>UI: 録音済み音声Blob（WebM）を返却
+    UI->>UI: /api/stt へ音声をPOST送信
+    UI-->>UI: faster-whisperがCUDA推論 → テキストで返却
 
     %% 2. AI思考フェーズ
     UI->>AV: 「考えるポーズ［thinking］」に変更指示
@@ -194,6 +200,39 @@ sequenceDiagram
             VS->>AV: 再生時間中に日本語の音節で口パク（リップシンク）
         end
     end
+```
+
+---
+
+### 🎙️ ローカルSTT（faster-whisper）音声入力フロー
+
+Ollamaモード時、NEURAL LINK ボタンによる音声対話は以下のシーケンスで処理されます。
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor U as "ユーザー"
+    participant UI as "ブラウザ（main.js）"
+    participant MR as "MediaRecorder（voice-system.js）"
+    participant PY as "バックエンド（server.py）"
+    participant FW as "faster-whisper（CUDA）"
+
+    U->>UI: NEURAL LINK ボタン押下（録音開始）
+    UI->>MR: MediaRecorder.start() でマイク録音開始
+    MR-->>UI: ステータス表示「音声リンク: 接続中」
+
+    U->>UI: ボタン再押下（録音停止）
+    MR-->>UI: ondataavailable → 音声Blob（WebM形式）を返却
+
+    UI->>PY: POST /api/stt（音声Blobをmultipart送信）
+    Note over PY: 0バイトガードチェック
+    PY->>PY: FFmpegでWebM → 16kHz モノラル WAV 変換
+    PY->>FW: wav_pathでtranscribe()を呼び出し
+    FW-->>PY: 文字起こし結果（日本語テキスト）
+    PY-->>UI: {"text": "..."} をJSON返却
+
+    UI->>UI: 文字起こしテキストをチャット入力欄にセット
+    UI->>UI: processConversation() でAIへ送信
 ```
 
 ### 👆 データフローのポイント
